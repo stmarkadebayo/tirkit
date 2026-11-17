@@ -108,7 +108,7 @@ def test_playground_runs_model_and_traces_it(server) -> None:
     assert r.status_code == 200, r.text
     out = r.json()
     assert out["output"] == "HELLO TIRKIT" and out["usage"]["output_tokens"] == 5
-    trace = c.get(f"/api/projects/{pid}/traces/{out['trace_id']}").json()
+    trace = c.get(f"/api/projects/{pid}/traces/{out['trace_id']}?full=1").json()
     assert trace["spans"][0]["name"] == "playground" and trace["spans"][0]["model_params"] == {
         "temperature": 0
     }

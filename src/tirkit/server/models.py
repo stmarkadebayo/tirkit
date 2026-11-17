@@ -294,6 +294,25 @@ class Trace(Out):
     has_error: bool
 
 
+class TraceHead(Out):
+    """A trace summary without the root's input and output (see the root span's previews)."""
+
+    trace_id: str
+    name: str | None
+    session_id: str | None
+    user_id: str | None
+    release: str | None
+    tags: list[str]
+    start: float | None
+    end: float | None
+    duration_ms: float | None
+    n_spans: int
+    input_tokens: int | None
+    output_tokens: int | None
+    cost_usd: float | None
+    has_error: bool
+
+
 class ScoreRow(Out):
     score_id: str
     trace_id: str | None
@@ -330,7 +349,49 @@ class TraceList(Out):
     total: int | None
 
 
+class SpanSummary(Out):
+    """A span in the light trace view: structure, timings, tokens, cost and short previews.
+    ``*_preview`` is the start of the input or output (strings as text, anything else as JSON
+    text); fetch the full span from ``GET .../traces/{trace_id}/spans/{span_id}``."""
+
+    span_id: str
+    parent_id: str | None
+    name: str
+    kind: str
+    status: str
+    level: str
+    start: float
+    end: float | None
+    duration_ms: float | None
+    ttft_ms: float | None
+    model: str | None
+    input_tokens: int | None
+    output_tokens: int | None
+    cost_usd: float | None
+    error: str | None
+    input_preview: str | None
+    output_preview: str | None
+    input_truncated: bool
+    output_truncated: bool
+
+
 class TraceDetail(Out):
+    """A trace with a light span tree (one page of spans, oldest first). ``omitted`` spans of
+    the trace come after this page; ask for them with ``offset=next_offset``."""
+
+    trace: TraceHead
+    spans: list[SpanSummary]
+    scores: list[ScoreRow]
+    total_spans: int
+    offset: int
+    omitted: int
+    next_offset: int | None
+    preview: int = Field(description="Characters of input and output preview each span got")
+
+
+class TraceDetailFull(Out):
+    """The trace with every span in full (``?full=1``; the shape before the light view)."""
+
     trace: Trace
     spans: list[Span]
     scores: list[ScoreRow]
