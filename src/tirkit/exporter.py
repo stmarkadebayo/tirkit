@@ -17,6 +17,7 @@ from collections import deque
 from typing import Any, Protocol
 
 from tirkit.media import MediaStore, extract_media
+from tirkit.redact import MODES, SDK_REDACTIONS_ATTR, Redactor
 from tirkit.tracing import Span
 
 log = logging.getLogger("tirkit")
@@ -43,7 +44,14 @@ class BatchExporter:
         batch_size: int = 256,
         interval_s: float = 0.25,
         max_retries: int = 3,
+        redact: str | None = None,
+        redact_patterns: list[tuple[str, str]] | None = None,
     ) -> None:
+        if redact is not None and redact not in MODES:
+            raise ValueError(f"redact must be one of {MODES}")
+        self.redact = redact
+        self.redact_patterns = list(redact_patterns or [])
+        self.redacted = 0
         self.target = target
         self.media_store = media_store
         self.max_queue = max_queue
@@ -94,6 +102,16 @@ class BatchExporter:
                 span.attributes = extract_media(span.attributes, self.media_store)
         except Exception:  # noqa: BLE001
             log.warning("tirkit: media extraction failed for span %s", span.name, exc_info=True)
+        if self.redact and self.redact != "off":
+            # Runs here, in the exporter thread, so redaction never slows the traced code.
+            r = Redactor(self.redact, self.redact_patterns)
+            span.input = r.obj(span.input)
+            span.output = r.obj(span.output)
+            span.attributes = r.obj(span.attributes) or {}
+            span.error = r.text(span.error) if span.error else span.error
+            if r.count:
+                span.attributes[SDK_REDACTIONS_ATTR] = r.count
+                self.redacted += r.count
         return span
 
     def _write(self, batch: list[Span]) -> None:
@@ -161,6 +179,7 @@ class BatchExporter:
             "dropped": self.dropped,
             "failed": self.failed,
             "throttled": self.throttled,
+            "redacted": self.redacted,
         }
 
 
