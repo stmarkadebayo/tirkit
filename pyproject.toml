@@ -1,0 +1,92 @@
+[project]
+name = "tirkit"
+version = "0.1.0"
+description = "LLM eval and observability platform: tracing, test sets mined from production logs, CI regression gates, and an LLM judge you can actually trust."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "St. Mark Adebayo" }]
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: System :: Monitoring",
+]
+# Unpinned on purpose: pin after your first install (uv lock or pip freeze).
+dependencies = [
+    "typer",
+    "httpx",
+]
+
+[project.optional-dependencies]
+server = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "psycopg[binary]>=3.2",
+    "psycopg-pool>=3.2",
+    "argon2-cffi>=23",
+    "opentelemetry-proto>=1.27",
+]
+docs = ["mkdocs-material>=9.5"]
+dev = [
+    "tirkit[server]",
+    "pytest>=8",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    # Provider SDKs, only to test instrumentation against the real clients.
+    "openai>=2",
+    "anthropic>=1",
+    "google-genai>=1",
+    # Integration tests: LangChain handler, transformers pipelines (faked), OTel SDK example.
+    "langchain-core>=0.3",
+    "numpy>=1.26",
+    "opentelemetry-sdk>=1.27",
+    "opentelemetry-exporter-otlp-proto-http>=1.27",
+]
+
+
+[project.scripts]
+tirkit = "tirkit.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tirkit"]
+
+[tool.ruff]
+cache-dir = ".cache/ruff"
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument", "fastapi.Depends"]
+
+[tool.ruff.lint.per-file-ignores]
+# Test fixtures and benchmark payloads are clearer as long literal lines.
+"tests/*" = ["E501"]
+"research/*" = ["E501"]
+"examples/*" = ["E501"]
+
+[tool.pytest.ini_options]
+cache_dir = ".cache/pytest"
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "acceptance: definition-of-done tests from docs/SPEC.md; they fail until the feature is built",
+    "postgres: needs TIRKIT_TEST_POSTGRES_URL (a scratch Postgres database)",
+]
+
+[tool.mypy]
+cache_dir = ".cache/mypy"
+python_version = "3.11"
+ignore_missing_imports = true
