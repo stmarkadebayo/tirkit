@@ -1,0 +1,11 @@
+apiVersion: v2
+name: tirkit
+description: Tirkit, open-source LLM observability and evaluation (server, worker and optional Postgres).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.25.0-0"
+home: https://github.com/stmarkadebayo/tirkit
+sources:
+  - https://github.com/stmarkadebayo/tirkit
+keywords: [llm, observability, evaluation, tracing, opentelemetry]

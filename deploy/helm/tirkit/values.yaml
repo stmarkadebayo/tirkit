@@ -1,0 +1,124 @@
+# Tirkit Helm chart. Every value here is a starting point: resource figures are not measured
+# defaults; see docs/site/operations.md (Sizing) for what has been measured and how.
+
+image:
+  # No public image is published yet: build the repository's Dockerfile, push it to your registry
+  # and set repository (and tag) here.
+  repository: tirkit
+  tag: ""  # defaults to the chart's appVersion
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+server:
+  replicas: 2
+  # Uvicorn processes per pod. Prometheus counters are shared across them (see /metrics).
+  workers: 2
+  port: 8000
+  # Plain-HTTP cookies. Leave false when the server is reached over HTTPS (the normal case).
+  insecureCookies: false
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {memory: 1Gi}
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  pdb:
+    enabled: true
+    minAvailable: 1
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+
+worker:
+  # Background jobs: UI experiments, online evals, alerts and retention. Several replicas are safe
+  # (jobs are claimed with FOR UPDATE SKIP LOCKED; periodic tasks take a lease).
+  enabled: true
+  replicas: 1
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {memory: 1Gi}
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  host: tirkit.example.com
+  annotations: {}
+  tls: []  # e.g. [{secretName: tirkit-tls, hosts: [tirkit.example.com]}]
+
+# Prometheus metrics at /metrics on the server port. The pods carry prometheus.io/* annotations.
+metrics:
+  enabled: true
+  # Optional bearer token Prometheus must send (stored in the Secret as METRICS_TOKEN).
+  token: ""
+
+config:
+  adminEmail: ""        # create the first admin at startup instead of the setup page
+  llmBaseUrl: ""        # OpenAI-compatible endpoint for playground, UI experiments and judges
+  judgeModel: ""
+
+# Secret values. Set existingSecret to use a Secret you manage; it must hold DATABASE_URL (and
+# POSTGRES_PASSWORD when postgresql.enabled), and may hold ADMIN_PASSWORD, LLM_API_KEY,
+# ANTHROPIC_API_KEY and METRICS_TOKEN.
+secrets:
+  existingSecret: ""
+  databaseUrl: ""       # postgresql://user:password@host:5432/db when postgresql.enabled is false
+  adminPassword: ""
+  llmApiKey: ""
+  anthropicApiKey: ""
+
+media:
+  # Media files (images, audio) are shared by every server and worker pod, so the volume must be
+  # ReadWriteMany when there is more than one pod (NFS, EFS, Filestore, Azure Files, CephFS ...).
+  persistence:
+    enabled: true
+    existingClaim: ""
+    accessMode: ReadWriteMany
+    size: 10Gi
+    storageClass: ""
+
+# A single Postgres 16 instance for small installs and trials. For production use a managed or
+# operator-run Postgres and set postgresql.enabled=false plus secrets.databaseUrl.
+postgresql:
+  enabled: true
+  image: postgres:16-alpine
+  auth:
+    username: tirkit
+    database: tirkit
+    password: ""        # generated on install and kept on upgrade when empty
+  persistence:
+    size: 20Gi
+    storageClass: ""
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {memory: 2Gi}
+
+serviceAccount:
+  create: true
+  name: ""
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile: {type: RuntimeDefault}
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: {drop: [ALL]}
