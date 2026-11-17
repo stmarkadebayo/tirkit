@@ -126,7 +126,7 @@ class Evaluators:
         )
 
     def _scorer(self, cfg: dict[str, Any]) -> Any:
-        from tirkit.worker_tasks import build_scorers
+        from tirkit.scorer_specs import build_scorers
 
         spec = str(cfg["spec"])
         if spec.startswith("judge:") and cfg.get("rubric_text"):

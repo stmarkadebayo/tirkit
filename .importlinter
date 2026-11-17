@@ -1,0 +1,58 @@
+[importlinter]
+root_package = tirkit
+include_external_packages = True
+
+# Layers, highest first. A module may import only from layers below it. Modules in one layer
+# are siblings and may import each other. See docs/DECISIONS.md, "Layers".
+[importlinter:contract:layers]
+name = Layers: delivery > services > eval > sdk > storage > core
+type = layers
+containers = tirkit
+layers =
+    server : cli
+    accounts : alerts : annotation : jobs : online : prompts : worker_tasks
+    datasets : scorers : scorer_specs : judge : runner : reliability : report : providers
+    client : exporter : http : tracing : otel : instrumentation : integrations
+    store
+    types : serialize : redact : media : pricing : stats
+exhaustive = true
+exhaustive_ignores =
+    data
+
+[importlinter:contract:server-deps]
+name = Only delivery code (server, cli) imports the web framework
+type = forbidden
+source_modules =
+    tirkit.types
+    tirkit.serialize
+    tirkit.redact
+    tirkit.media
+    tirkit.pricing
+    tirkit.stats
+    tirkit.store
+    tirkit.client
+    tirkit.exporter
+    tirkit.http
+    tirkit.tracing
+    tirkit.otel
+    tirkit.instrumentation
+    tirkit.integrations
+    tirkit.datasets
+    tirkit.scorers
+    tirkit.scorer_specs
+    tirkit.judge
+    tirkit.runner
+    tirkit.reliability
+    tirkit.report
+    tirkit.providers
+    tirkit.accounts
+    tirkit.alerts
+    tirkit.annotation
+    tirkit.jobs
+    tirkit.online
+    tirkit.prompts
+    tirkit.worker_tasks
+forbidden_modules =
+    fastapi
+    starlette
+    uvicorn

@@ -14,12 +14,12 @@ import threading
 import time
 from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from tirkit.serialize import dumps
-from tirkit.tracing import Span
+from tirkit.types import Dataset, Example, RunResult, Span
+from tirkit.types import Trace as Trace
 
 DEFAULT_PROJECT = "default"
 _WORD = re.compile(r"\w+", re.UNICODE)
@@ -497,28 +497,6 @@ _TRACE_FILTERS = {
 }
 
 
-@dataclass
-class Trace:
-    """Summary of one trace (aggregated over its spans)."""
-
-    trace_id: str
-    name: str | None = None
-    session_id: str | None = None
-    user_id: str | None = None
-    release: str | None = None
-    tags: list[str] = field(default_factory=list)
-    input: Any = None
-    output: Any = None
-    start: float | None = None
-    end: float | None = None
-    duration_ms: float | None = None
-    n_spans: int = 0
-    input_tokens: int | None = None
-    output_tokens: int | None = None
-    cost_usd: float | None = None
-    has_error: bool = False
-
-
 def _pct(sorted_values: list[float], q: float) -> float:
     pos = q * (len(sorted_values) - 1)
     lo, hi = int(pos), min(int(pos) + 1, len(sorted_values) - 1)
@@ -901,8 +879,6 @@ class SQLStore:
 
     def load_dataset(self, name: str, version: str | None = None) -> Any:
         """Load a dataset version (latest when ``version`` is None)."""
-        from tirkit.datasets import Dataset, Example
-
         if version is None:
             rows = self.execute(
                 "SELECT version FROM dataset_versions WHERE project_id = ? AND name = ? "
@@ -1062,8 +1038,6 @@ class SQLStore:
             )
 
     def load_experiment(self, experiment_id: str) -> Any:
-        from tirkit.runner import RunResult
-
         rows = self.execute(
             "SELECT name, dataset, version, target, config, created FROM experiments "
             "WHERE project_id = ? AND experiment_id = ?",

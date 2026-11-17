@@ -2,98 +2,16 @@
 
 from __future__ import annotations
 
-import csv
-import hashlib
-import json
 import re
 from collections.abc import Callable, Iterable
-from dataclasses import asdict, dataclass, field
-from pathlib import Path
 from typing import Any
 
 from tirkit.redact import redact_obj
 from tirkit.serialize import to_jsonable
-from tirkit.tracing import Span
-
-
-@dataclass
-class Example:
-    input: dict[str, Any]
-    expected: Any | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class Dataset:
-    name: str
-    examples: list[Example]
-
-    @property
-    def version(self) -> str:
-        """Content hash: the same examples always give the same version."""
-        payload = json.dumps([asdict(e) for e in self.examples], sort_keys=True, default=str)
-        return hashlib.sha256(payload.encode()).hexdigest()[:12]
-
-    def __len__(self) -> int:
-        return len(self.examples)
-
-    def __iter__(self) -> Any:
-        return iter(self.examples)
-
-    # -- IO -------------------------------------------------------------------------------------
-
-    def to_jsonl(self, path: str | Path) -> None:
-        """One example per line: ``{"input": ..., "expected": ..., "metadata": ...}``."""
-        with Path(path).open("w", encoding="utf-8") as f:
-            for e in self.examples:
-                f.write(json.dumps(asdict(e), ensure_ascii=False, default=str) + "\n")
-
-    @classmethod
-    def from_jsonl(cls, path: str | Path, name: str | None = None) -> Dataset:
-        examples = []
-        with Path(path).open(encoding="utf-8") as f:
-            for lineno, line in enumerate(f, 1):
-                if not line.strip():
-                    continue
-                try:
-                    row = json.loads(line)
-                except ValueError as exc:
-                    raise ValueError(f"{path}:{lineno}: invalid JSON") from exc
-                examples.append(_example_from_row(row))
-        return cls(name or Path(path).stem, examples)
-
-    @classmethod
-    def from_csv(
-        cls,
-        path: str | Path,
-        name: str | None = None,
-        *,
-        input_columns: list[str] | None = None,
-        expected_column: str | None = "expected",
-    ) -> Dataset:
-        """Each row becomes an example. Without ``input_columns`` every column except the
-        expected column (and ``metadata.*`` columns) is an input field."""
-        examples = []
-        with Path(path).open(encoding="utf-8", newline="") as f:
-            for row in csv.DictReader(f):
-                meta = {k[9:]: v for k, v in row.items() if k.startswith("metadata.")}
-                cols = input_columns or [
-                    k for k in row if k != expected_column and not k.startswith("metadata.")
-                ]
-                expected = row.get(expected_column) if expected_column else None
-                examples.append(Example({k: row[k] for k in cols}, expected or None, meta))
-        return cls(name or Path(path).stem, examples)
-
-
-def _example_from_row(row: Any) -> Example:
-    if isinstance(row, dict) and "input" in row:
-        inp = row["input"] if isinstance(row["input"], dict) else {"input": row["input"]}
-        return Example(inp, row.get("expected"), row.get("metadata") or {})
-    if isinstance(row, dict):
-        expected = row.pop("expected", None)
-        return Example(row, expected)
-    return Example({"input": row})
-
+from tirkit.types import Dataset as Dataset
+from tirkit.types import Example as Example
+from tirkit.types import Span
+from tirkit.types import _example_from_row as _example_from_row
 
 # -- mining traces ------------------------------------------------------------------------------
 

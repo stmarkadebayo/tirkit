@@ -8,7 +8,7 @@ setup:
 	$(PY) -m venv $(VENV) && $(BIN)/pip install -U pip && $(BIN)/pip install -e ".[dev]"
 
 lint:
-	$(BIN)/ruff check . && $(BIN)/mypy src
+	$(BIN)/ruff check . && $(BIN)/mypy src && $(BIN)/lint-imports
 
 fmt:
 	$(BIN)/ruff format . && $(BIN)/ruff check --fix .

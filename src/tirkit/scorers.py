@@ -13,24 +13,12 @@ import math
 import re
 import unicodedata
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 
-from tirkit.datasets import Example
 from tirkit.media import Attachment, MediaStore, is_media_ref
 from tirkit.serialize import to_jsonable
-
-
-@dataclass
-class Score:
-    value: float | None
-    reason: str | None = None
-    error: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-    @property
-    def ok(self) -> bool:
-        return self.value is not None and self.error is None
+from tirkit.types import Example
+from tirkit.types import Score as Score
 
 
 class Scorer(Protocol):

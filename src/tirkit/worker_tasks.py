@@ -7,28 +7,11 @@ import time
 from typing import Any
 
 from tirkit.jobs import handler, periodic
+from tirkit.scorer_specs import build_scorers
 from tirkit.store import SQLStore
 from tirkit.tracing import sink_context
 
 log = logging.getLogger("tirkit.worker")
-
-
-def build_scorers(specs: list[str], store: SQLStore, judge_model: str | None) -> list[Any]:
-    from tirkit.cli import build_scorer
-    from tirkit.judge import LLMJudge
-    from tirkit.providers import ServerJudgeModel
-
-    out = []
-    for spec in specs:
-        if spec.startswith("judge:"):
-            if not judge_model:
-                raise ValueError("judge scorers need a judge model")
-            out.append(LLMJudge(ServerJudgeModel(judge_model), spec.split(":", 1)[1], cache=store))
-        elif ":" in spec:
-            raise ValueError(f"scorer {spec!r} is not allowed from the UI")
-        else:
-            out.append(build_scorer(spec, store))
-    return out
 
 
 @handler("experiment")
