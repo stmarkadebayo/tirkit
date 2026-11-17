@@ -1,0 +1,15 @@
+{"text": "Contact me at jane.doe@example.com please", "must_not_contain": ["jane.doe@example.com"], "placeholder": "[EMAIL]"}
+{"text": "my work mail is J.Smith+billing@corp.co.uk", "must_not_contain": ["J.Smith+billing@corp.co.uk"], "placeholder": "[EMAIL]"}
+{"text": "Call +1 415 555 0134 after 5pm", "must_not_contain": ["415 555 0134"], "placeholder": "[PHONE]"}
+{"text": "UK number 020 7946 0958", "must_not_contain": ["7946 0958"], "placeholder": "[PHONE]"}
+{"text": "Nigeria line +234 803 123 4567", "must_not_contain": ["803 123 4567"], "placeholder": "[PHONE]"}
+{"text": "(212) 555-0198 is my cell", "must_not_contain": ["555-0198"], "placeholder": "[PHONE]"}
+{"text": "card 4111 1111 1111 1111 exp 12/29", "must_not_contain": ["4111 1111 1111 1111"], "placeholder": "[CARD]"}
+{"text": "Amex 3782-822463-10005", "must_not_contain": ["3782-822463-10005"], "placeholder": "[CARD]"}
+{"text": "key sk-proj-abcdefghijklmnopqrstuvwxyz123456", "must_not_contain": ["sk-proj-abcdefghijklmnopqrstuvwxyz123456"], "placeholder": "[API_KEY]"}
+{"text": "ANTHROPIC key sk-ant-api03-AbCdEfGhIjKlMnOpQrStUvWx", "must_not_contain": ["sk-ant-api03-AbCdEfGhIjKlMnOpQrStUvWx"], "placeholder": "[API_KEY]"}
+{"text": "aws AKIAIOSFODNN7EXAMPLE", "must_not_contain": ["AKIAIOSFODNN7EXAMPLE"], "placeholder": "[API_KEY]"}
+{"text": "token ghp_abcdefghijklmnopqrstuvwxyz0123456789", "must_not_contain": ["ghp_abcdefghijklmnopqrstuvwxyz0123456789"], "placeholder": "[API_KEY]"}
+{"text": "password: hunter2hunter2", "must_not_contain": ["hunter2hunter2"], "placeholder": "[API_KEY]"}
+{"text": "server at 192.168.10.24 is down", "must_not_contain": ["192.168.10.24"], "placeholder": "[IP]"}
+{"text": "IBAN GB82 WEST 1234 5698 7654 32", "must_not_contain": ["GB82 WEST 1234 5698 7654 32"], "placeholder": "[IBAN]"}
