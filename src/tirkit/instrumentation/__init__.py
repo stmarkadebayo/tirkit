@@ -12,6 +12,7 @@ def _registry() -> dict[str, Callable[[], bool]]:
         anthropic,
         cohere,
         gemini,
+        litellm,
         mistral,
         openai,
     )
@@ -26,6 +27,7 @@ def _registry() -> dict[str, Callable[[], bool]]:
         "anthropic": anthropic.instrument,
         "cohere": cohere.instrument,
         "gemini": gemini.instrument,
+        "litellm": litellm.instrument,
         "mistral": mistral.instrument,
         "transformers": transformers,
     }
