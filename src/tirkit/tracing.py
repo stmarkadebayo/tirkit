@@ -52,6 +52,12 @@ KINDS = frozenset(
     }
 )
 
+        "vector_db",  # a vector store query or upsert (Chroma, Pinecone, pgvector...)
+        "mcp_tool",  # a tool called through the Model Context Protocol
+        "human",  # human in the loop: waiting for an approval or an answer
+        "computer_use",  # a computer-use action (click, type, screenshot)
+        "retry",  # a call retried until it worked; children are the attempts
+        "fallback",  # alternatives tried in order; children are the options tried
 
 class SpanSink(Protocol):
     def save_span(self, span: Span) -> None: ...
