@@ -173,6 +173,14 @@ CALLS: list[tuple[str, str, dict[str, Any], int]] = [
     ),
     ("GET", "/api/projects/{project_id}/keys", {}, 200),
     ("POST", "/api/projects/{project_id}/keys", {"json": {"name": "ci"}}, 201),
+    (
+        "POST",
+        "/api/projects/{project_id}/keys/{public_key}/rotate",
+        {"json": {"overlap_s": 60}},
+        201,
+    ),
+    ("GET", "/api/projects/{project_id}/audit", {"params": {"limit": 5}}, 200),
+    ("GET", "/api/admin/audit", {"params": {"action": "key."}}, 200),
     ("GET", "/api/projects/{project_id}/prices", {}, 200),
     (
         "PUT",

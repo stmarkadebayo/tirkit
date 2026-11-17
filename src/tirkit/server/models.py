@@ -128,10 +128,18 @@ class RedactPattern(BaseModel):
     label: str | None = None
 
 
+RedactMode = Literal["off", "secrets", "strict"]
+
+
 class SettingsUpdate(In):
     """Fields left out keep their current value; ``null`` clears one."""
 
-    redact: bool | None = None
+    redact_mode: RedactMode | None = Field(
+        None,
+        description="PII redaction at ingestion: off, secrets (keys, tokens, cards, IBANs, "
+        "passwords) or strict (also emails, phone numbers and IP addresses).",
+    )
+    redact: bool | None = Field(None, description="Deprecated: true = strict, false = off.")
     redact_patterns: list[RedactPattern] | None = None
     retention_days: float | None = None
     judge_budget_usd_per_day: float | None = None
@@ -139,6 +147,7 @@ class SettingsUpdate(In):
 
 
 class ProjectSettings(Out):
+    redact_mode: RedactMode | None = None
     redact: bool | None = None
     redact_patterns: list[RedactPattern] | None = None
     retention_days: float | None = None
@@ -152,6 +161,7 @@ class Project(Out):
     settings: ProjectSettings
     created: float
     role: Literal["admin", "member", "viewer"]
+    redactions: int = Field(0, description="Values redacted at ingestion (server and SDK).")
 
 
 class KeyProject(Out):
@@ -181,16 +191,34 @@ class ApiKeyInfo(Out):
     public_key: str
     name: str | None
     created: float
-    last_used: float | None
+    last_used: float | None = Field(description="Updated at most once a minute per server process.")
+    expires_at: float | None
+    rotated_to: str | None = Field(description="The key that replaced this one, if rotated.")
+    expired: bool
 
 
 class CreateKeyRequest(In):
     name: str | None = None
+    expires_at: float | None = Field(None, description="Unix seconds; the key stops working then.")
 
 
 class ApiKeyCreated(Out):
     public_key: str
     secret_key: str = Field(description="Shown once; only a hash is stored.")
+    expires_at: float | None = None
+
+
+class RotateKeyRequest(In):
+    overlap_s: float | None = Field(
+        None, ge=0, le=30 * 86400, description="How long the old key keeps working (default 1 day)."
+    )
+
+
+class ApiKeyRotated(Out):
+    public_key: str
+    secret_key: str = Field(description="Shown once; only a hash is stored.")
+    previous_key: str
+    previous_expires_at: float
 
 
 Prices = dict[str, dict[str, float]]
@@ -915,3 +943,25 @@ class JudgeReportRequest(BaseModel):
 
 class OtlpAccepted(Out):
     """Empty object: the JSON form of OTLP's ``ExportTraceServiceResponse``."""
+
+
+# -- audit log ---------------------------------------------------------------------------------
+
+
+class AuditEntry(Out):
+    id: int
+    at: float
+    actor: str | None = Field(
+        description="Email, ``api:<public key>``, or the email tried at sign-in."
+    )
+    actor_id: str | None
+    ip: str | None
+    action: str
+    project_id: str | None
+    target: str | None
+    detail: JsonObject
+
+
+class AuditPage(Out):
+    entries: list[AuditEntry]
+    next_before: int | None = Field(description="Pass as ``before`` for the next (older) page.")

@@ -38,12 +38,33 @@ function Keys({ pid }: { pid: string }) {
   const keys = useQuery({ queryKey: ["keys", pid], queryFn: () => api<Key[]>(projectPath(pid, "/keys")) });
   const [created, setCreated] = useState<{ public_key: string; secret_key: string } | null>(null);
   const [name, setName] = useState("");
+  const [days, setDays] = useState("");
+  const [err, setErr] = useState("");
   const host = window.location.origin;
   const create = async () => {
-    const r = await api<{ public_key: string; secret_key: string }>(projectPath(pid, "/keys"), { method: "POST", json: { name: name || null } });
-    setCreated(r);
-    setName("");
-    void qc.invalidateQueries({ queryKey: ["keys", pid] });
+    setErr("");
+    try {
+      const expires_at = days ? Date.now() / 1000 + Number(days) * 86400 : null;
+      const r = await api<{ public_key: string; secret_key: string }>(projectPath(pid, "/keys"), { method: "POST", json: { name: name || null, expires_at } });
+      setCreated(r);
+      setName("");
+      setDays("");
+      void qc.invalidateQueries({ queryKey: ["keys", pid] });
+    } catch (e) {
+      setErr(String(e));
+    }
+  };
+  const rotate = async (pk: string) => {
+    const hours = prompt("Keep the old key working for how many hours? (0 revokes it now)", "24");
+    if (hours === null) return;
+    setErr("");
+    try {
+      const r = await api<{ public_key: string; secret_key: string }>(projectPath(pid, `/keys/${pk}/rotate`), { method: "POST", json: { overlap_s: Number(hours) * 3600 } });
+      setCreated(r);
+      void qc.invalidateQueries({ queryKey: ["keys", pid] });
+    } catch (e) {
+      setErr(String(e));
+    }
   };
   const revoke = async (pk: string) => {
     if (!confirm(`Revoke ${pk}? Apps using it will stop sending traces.`)) return;
@@ -84,6 +105,7 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS=Authorization=Basic%20${btoa(`${created.public
             <th>Name</th>
             <th>Created</th>
             <th>Last used</th>
+            <th>Expires</th>
             <th />
           </tr>
         </thead>
@@ -94,7 +116,20 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS=Authorization=Basic%20${btoa(`${created.public
               <td>{k.name}</td>
               <td className="small muted">{fmtAgo(k.created)}</td>
               <td className="small muted">{k.last_used ? fmtAgo(k.last_used) : "never"}</td>
-              <td>
+              <td className="small muted">
+                {k.expired ? (
+                  <span className="badge">expired</span>
+                ) : k.expires_at ? (
+                  <>
+                    {new Date(k.expires_at * 1000).toLocaleString()}
+                    {k.rotated_to && <span className="badge" title={`replaced by ${k.rotated_to}`}>rotated</span>}
+                  </>
+                ) : (
+                  "never"
+                )}
+              </td>
+              <td className="row">
+                {!k.expired && !k.rotated_to && <button onClick={() => rotate(k.public_key)}>Rotate</button>}
                 <button className="danger" onClick={() => revoke(k.public_key)}>Revoke</button>
               </td>
             </tr>
@@ -103,8 +138,10 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS=Authorization=Basic%20${btoa(`${created.public
       </table>
       <div className="row" style={{ marginTop: 10 }}>
         <input placeholder="Key name (e.g. production)" value={name} onChange={(e) => setName(e.target.value)} />
+        <input type="number" min={1} placeholder="Expires in days (optional)" value={days} onChange={(e) => setDays(e.target.value)} style={{ width: 190 }} aria-label="Expires in days" />
         <button className="primary" onClick={create}>Create API key</button>
       </div>
+      {err && <div className="error-box">{err}</div>}
     </div>
   );
 }
@@ -194,9 +231,18 @@ function DataSettings({ pid }: { pid: string }) {
       <h2>Data</h2>
       <div className="grid">
         <label className="row">
-          <input type="checkbox" checked={!!s.redact} onChange={(e) => save({ redact: e.target.checked })} />
-          Redact PII (emails, phones, cards, API keys, IPs, IBANs) in inputs and outputs before they are stored
+          PII redaction
+          <select value={s.redact_mode ?? "off"} onChange={(e) => save({ redact_mode: e.target.value })} aria-label="PII redaction mode">
+            <option value="off">off</option>
+            <option value="secrets">secrets (default)</option>
+            <option value="strict">strict (recommended for production)</option>
+          </select>
         </label>
+        <div className="small muted">
+          <b>secrets</b>: API keys, tokens, JWTs, card numbers, IBANs and password assignments. <b>strict</b>: also emails, phone numbers and IP addresses.
+          Applied to inputs, outputs and attributes before they are stored. {(project.data?.redactions ?? 0).toLocaleString()} values redacted so far.
+          The SDK can also redact before sending: <code>tirkit.init(redact="strict")</code>.
+        </div>
         <div>
           <div className="small muted">Extra redaction patterns, one per line: <code>regex =&gt; [LABEL]</code></div>
           <textarea rows={3} value={patternText} onChange={(e) => setPatterns(e.target.value)} />
