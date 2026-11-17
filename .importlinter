@@ -10,11 +10,11 @@ type = layers
 containers = tirkit
 layers =
     server : cli
-    accounts : alerts : annotation : jobs : online : prompts : worker_tasks
-    datasets : scorers : scorer_specs : judge : runner : reliability : report : providers
+    accounts : alerts : annotation : audit : jobs : online : prompts : ratelimit : worker_tasks
+    datasets : scorers : scorer_specs : judge : injection : runner : reliability : report : providers
     client : exporter : http : tracing : otel : instrumentation : integrations
     store
-    types : serialize : redact : media : pricing : stats
+    types : serialize : redact : media : pricing : stats : netguard
 exhaustive = true
 exhaustive_ignores =
     data
@@ -29,6 +29,9 @@ source_modules =
     tirkit.media
     tirkit.pricing
     tirkit.stats
+    tirkit.netguard
+    tirkit.ratelimit
+    tirkit.audit
     tirkit.store
     tirkit.client
     tirkit.exporter
@@ -41,6 +44,7 @@ source_modules =
     tirkit.scorers
     tirkit.scorer_specs
     tirkit.judge
+    tirkit.injection
     tirkit.runner
     tirkit.reliability
     tirkit.report
