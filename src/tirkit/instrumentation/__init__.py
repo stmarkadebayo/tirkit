@@ -43,6 +43,7 @@ def _registry() -> dict[str, Callable[[], bool]]:
         "vertex": vertex.instrument,
         "transformers": transformers,
         "openai_agents": integration("openai_agents"),
+        "llamaindex": integration("llamaindex"),
     }
 
 
