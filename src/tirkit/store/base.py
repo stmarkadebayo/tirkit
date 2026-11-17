@@ -11,6 +11,8 @@ from tirkit.serialize import dumps
 from tirkit.store.dialect import Dialect
 
 DEFAULT_PROJECT = "default"
+# Postgres advisory lock key held while migrations run ("tirk" as a 32-bit integer).
+SCHEMA_LOCK_ID = 0x7469726B
 
 
 class StoreBase:
@@ -55,6 +57,10 @@ class StoreBase:
     def init_schema(self) -> None:
         """Create or upgrade tables (idempotent)."""
         with self.tx() as cur:
+            if self.dialect.name == "postgres":
+                # Replicas and workers starting together on a fresh database would otherwise race
+                # on CREATE TABLE IF NOT EXISTS. Released when the transaction ends.
+                cur.execute("SELECT pg_advisory_xact_lock(%s)", (SCHEMA_LOCK_ID,))
             cur.execute(
                 "CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY)"
             )

@@ -1,0 +1,21 @@
+# CI values: external Postgres, autoscaling, ingress with TLS, metrics token.
+postgresql:
+  enabled: false
+secrets:
+  databaseUrl: postgresql://tirkit:secret@db.example.com:5432/tirkit
+  llmApiKey: sk-test-not-a-real-key
+metrics:
+  token: ci-metrics-token
+server:
+  autoscaling:
+    enabled: true
+ingress:
+  enabled: true
+  className: nginx
+  host: tirkit.example.com
+  tls:
+    - secretName: tirkit-tls
+      hosts: [tirkit.example.com]
+config:
+  adminEmail: admin@example.com
+  llmBaseUrl: http://llm.example.com/v1

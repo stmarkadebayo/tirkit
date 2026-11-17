@@ -29,3 +29,6 @@ Main endpoints:
 | `GET /api/projects/{id}/compare?baseline=&candidate=` | Paired comparison with CIs |
 | `POST /api/projects/{id}/experiments/run` | Start a prompt × model × dataset experiment |
 | `GET /api/projects/{id}/export/traces.jsonl` | Export spans |
+
+Outside the JSON API: `GET /api/health` (liveness and database check) and `GET /metrics`
+(Prometheus text format; see [Operations](operations.md#monitoring)).

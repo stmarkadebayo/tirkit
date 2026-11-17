@@ -36,3 +36,11 @@ class Settings:
     admin_password: str | None = field(
         default_factory=lambda: os.environ.get("TIRKIT_ADMIN_PASSWORD")
     )
+    # Prometheus metrics at /metrics: TIRKIT_METRICS=0 turns them off; TIRKIT_METRICS_TOKEN, if set,
+    # must be sent as "Authorization: Bearer <token>".
+    metrics_enabled: bool = field(
+        default_factory=lambda: os.environ.get("TIRKIT_METRICS", "1") != "0"
+    )
+    metrics_token: str | None = field(
+        default_factory=lambda: os.environ.get("TIRKIT_METRICS_TOKEN") or None
+    )

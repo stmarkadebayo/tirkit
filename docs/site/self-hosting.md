@@ -17,7 +17,13 @@ worker (UI experiments, online evals, alerts, retention).
 `TIRKIT_INSECURE_COOKIES` so session cookies are `Secure`.
 
 **Data.** Traces, scores and datasets live in Postgres; media files in the `media` volume. Set a
-retention period per project in **Settings**; the worker deletes older traces hourly.
+retention period per project in **Settings**; the worker deletes older traces hourly. Back up with
+`tirkit backup` and practise restoring with the drill: see [Operations](operations.md).
+
+**Kubernetes.** A Helm chart is in `deploy/helm/tirkit`: see [Operations](operations.md#kubernetes-helm).
+
+**Monitoring.** Prometheus metrics are served at `/metrics` (`TIRKIT_METRICS_TOKEN` to protect them,
+`TIRKIT_METRICS=0` to turn them off).
 
 **Single process.** `pip install "tirkit[server]" && tirkit serve --database-url tirkit.db` runs the API,
 UI and an embedded worker on SQLite, for evaluation and small teams.

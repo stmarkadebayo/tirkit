@@ -31,6 +31,7 @@ from tirkit.server.deps import (
     read_body,
 )
 from tirkit.server.openapi import binary_body, json_body
+from tirkit.server.prometheus import count_spans
 from tirkit.server.settings import Settings
 from tirkit.store import SQLStore
 from tirkit.types import Span
@@ -74,6 +75,7 @@ async def ingest(
     except (ValueError, TypeError, AttributeError) as exc:
         raise HTTPException(400, f"invalid payload: {exc}") from exc
     store.for_project(pid).save_spans(_prepare(request, spans, pid))
+    count_spans(request, "spans", len(spans))
     return json_response({"accepted": len(spans)})
 
 
@@ -102,6 +104,7 @@ async def otlp_traces(
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(400, f"invalid OTLP payload: {exc}") from exc
     store.for_project(pid).save_spans(_prepare(request, spans, pid))
+    count_spans(request, "otlp", len(spans))
     if "json" in ctype:
         return Response("{}", media_type="application/json")
     return Response(b"", media_type="application/x-protobuf")

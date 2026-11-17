@@ -1,0 +1,15 @@
+{{- $replicas := ternary .Values.server.autoscaling.minReplicas .Values.server.replicas .Values.server.autoscaling.enabled }}
+{{- if and .Values.server.pdb.enabled (gt (int $replicas) 1) }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "tirkit.fullname" . }}-server
+  labels:
+    {{- include "tirkit.labels" . | nindent 4 }}
+    app.kubernetes.io/component: server
+spec:
+  minAvailable: {{ .Values.server.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "tirkit.selectorLabels" (list . "server") | nindent 6 }}
+{{- end }}

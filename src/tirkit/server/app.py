@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 
 from tirkit.accounts import Accounts
 from tirkit.media import LocalMediaStore
-from tirkit.server import openapi
+from tirkit.server import openapi, prometheus
 from tirkit.server.deps import (
     SESSION_COOKIE,
     Ctx,
@@ -72,6 +72,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     for router in ROUTERS:
         app.include_router(router, responses=openapi.ERROR_RESPONSES)
+    prometheus.install(app, store, settings.metrics_enabled, settings.metrics_token)
 
     # Extension point for plugins: ``fn(app, project_ctx, key_project, json_response)``.
     for register in _EXTENSIONS:

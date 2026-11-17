@@ -45,7 +45,8 @@ through the HTTP API.
 | A screen in the web UI | `web/src/pages/` ([README](../web/README.md)) | web | `make test-web` |
 | The TypeScript SDK | `sdk-ts/` ([README](../sdk-ts/README.md)) | sdk (TS) | `cd sdk-ts && npm test` |
 | User docs | `docs/site/` | docs | `mkdocs build --strict` |
-| Docker, Compose, CI | `Dockerfile`, `docker-compose.yml`, `.github/workflows/` | deploy | — |
+| Backup, restore, monitoring queries | `src/tirkit/store/backup.py`, `store/ops.py`; the `/metrics` endpoint in `server/prometheus.py` | storage / delivery | `make test`, `scripts/restore_drill.py` |
+| Docker, Compose, CI, Helm chart | `Dockerfile`, `docker-compose.yml`, `.github/workflows/`, `deploy/helm/` | deploy | `helm lint deploy/helm/tirkit` |
 
 Keep a pull request to one area where you can. Pull requests are labelled by area automatically, and
 CI runs only the jobs for the areas you touched. If a change needs a type from a higher layer, move
