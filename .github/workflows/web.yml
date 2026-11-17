@@ -34,4 +34,5 @@ jobs:
             echo "::error::web/src/api/schema.ts is stale. Run 'make api' and commit the result."
             exit 1
           }
+      - run: npm test
       - run: npm run build

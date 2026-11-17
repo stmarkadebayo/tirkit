@@ -15,7 +15,7 @@ make setup        # create .venv and install with dev tools
 make test         # all tests
 make test-core    # tests that do not need the server
 make test-server  # server, API contract and Postgres tests
-make test-web     # web UI: generated API types current + typecheck (needs npm ci in web/)
+make test-web     # web UI: generated API types current, typecheck, Vitest (needs npm ci in web/)
 make lint         # ruff, mypy and the layer contracts (import-linter)
 make api          # regenerate docs/api/openapi.json and the web UI's API types
 make progress     # how many acceptance tests pass

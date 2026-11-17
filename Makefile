@@ -23,7 +23,7 @@ test-server:  # HTTP API, auth, ingestion, workers (needs the server extra)
 	$(BIN)/pytest -q -m server
 
 test-web:  # web UI: generated API types are current and the code typechecks
-	cd web && npm run -s api:check && npm run -s typecheck
+	cd web && npm run -s api:check && npm run -s typecheck && npm test --silent
 
 api:  # regenerate docs/api/openapi.json and the web UI's types from the server models
 	$(BIN)/python -m tirkit.server.openapi > docs/api/openapi.json

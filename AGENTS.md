@@ -66,7 +66,7 @@ make progress   # acceptance tests only
 make lint       # ruff, mypy and layer contracts (import-linter)
 make test-core  # tests that do not need the server
 make test-server # server, API contract and Postgres tests
-make test-web   # web UI: generated API types current + typecheck
+make test-web   # web UI: generated API types current, typecheck, Vitest
 make api        # regenerate docs/api/openapi.json and web/src/api/schema.ts
 make demo       # run examples/quickstart.py
 make web        # build the web UI
