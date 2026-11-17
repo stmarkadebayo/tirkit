@@ -1,0 +1,26 @@
+site_name: Tirkit
+site_description: Open-source LLM observability and evaluation you can trust.
+repo_url: https://github.com/stmarkadebayo/tirkit
+docs_dir: docs/site
+site_dir: .cache/site
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Concepts: concepts.md
+  - Python SDK: python-sdk.md
+  - TypeScript SDK: typescript-sdk.md
+  - Integrations: integrations.md
+  - Evaluating changes: evaluation.md
+  - Self-hosting: self-hosting.md
+  - HTTP API: api.md
+theme:
+  name: material
+  features: [navigation.sections, content.code.copy]
+  palette:
+    - scheme: default
+      primary: deep purple
+      toggle: {icon: material/weather-night, name: Dark mode}
+    - scheme: slate
+      primary: deep purple
+      toggle: {icon: material/weather-sunny, name: Light mode}
+markdown_extensions: [tables, admonition, pymdownx.superfences]
