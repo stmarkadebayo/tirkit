@@ -62,3 +62,16 @@ All notable changes to Tirkit are recorded here. The format follows
 
 ### Fixed
 - Alerts created through the API without `window_s` showed "NaN min" in the UI.
+
+### Security
+- Sign-in throttling per account, per address and server-wide with a progressive delay (never a permanent lock-out), generic errors and `Retry-After`; `TIRKIT_TRUSTED_PROXIES` for the real client address behind reverse proxies.
+- Per-API-key ingest limits (default 5,000 spans/s) answered with `429` and `Retry-After`; the Python and TypeScript SDKs wait and resend instead of dropping. Limits are shared across server processes through the database.
+- Rate limiter module with token bucket, sliding window and progressive delay on in-process and database backends.
+- Security headers on every response (CSP without inline script, `nosniff`, `Referrer-Policy`, frame-ancestors none, HSTS on HTTPS); CORS is same-origin unless `TIRKIT_CORS_ORIGINS` allows origins for the ingestion routes.
+- SSRF guard for alert webhooks: public addresses only (including IPv6 and numeric-host tricks), DNS pinned, no redirects, timeout and size cap; `TIRKIT_ALLOW_PRIVATE_WEBHOOKS=1` to opt out.
+- Append-only audit log (sign-ins, keys, members, settings, exports, deletes) with an admin API and an **Audit log** page.
+- API key rotation with an overlap window, optional expiry and last-used in Settings.
+- CI: `pip-audit` and `npm audit --omit=dev` (weekly and on dependency changes) and Dependabot for pip, npm, Actions and Docker. `react-router-dom` 6.28.0 → 7.18.5 for published advisories.
+- LLM judge prompt-injection hardening: per-call random delimiters, treat-as-data rules, strict reply format, `suspect_injection` flag; a 78-attack suite and a script that measures attack success against a real model.
+- PII redaction modes `off` / `secrets` / `strict` per project (`secrets` for new projects; existing projects keep their behaviour), SDK-side redaction in the exporter thread (`tirkit.init(redact=...)`), a redaction counter in Settings, and a stricter phone-number pattern that no longer mangles long numeric IDs.
+- `docs/site/security.md`: threat model, defaults, limits, encryption at rest and reverse-proxy settings.
