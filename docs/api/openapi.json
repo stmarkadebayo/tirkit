@@ -597,6 +597,75 @@
         }
       }
     },
+    "/api/projects/{project_id}/keys/{public_key}/rotate": {
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "summary": "Rotate Key",
+        "description": "Issue a replacement key. The old key keeps working for ``overlap_s`` seconds (default one\nday, 0 to revoke it now) so running apps can switch over without dropping traces.",
+        "operationId": "rotate_key_api_projects__project_id__keys__public_key__rotate_post",
+        "parameters": [
+          {
+            "name": "public_key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Public Key"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RotateKeyRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyRotated"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client error: {\"detail\": \"...\"}",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/projects/{project_id}/keys/{public_key}": {
       "delete": {
         "tags": [
@@ -4417,6 +4486,227 @@
           }
         }
       }
+    },
+    "/api/admin/audit": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Server Audit",
+        "description": "Every audit event, including sign-ins (server admins only).",
+        "operationId": "server_audit_api_admin_audit_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact action, or a prefix ending in \".\"",
+              "title": "Action"
+            },
+            "description": "Exact action, or a prefix ending in \".\""
+          },
+          {
+            "name": "actor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only entries with a smaller id",
+              "title": "Before"
+            },
+            "description": "Only entries with a smaller id"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPage"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client error: {\"detail\": \"...\"}",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/audit": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Project Audit",
+        "description": "This project's audit events (project admins, signed in; API keys cannot read it).",
+        "operationId": "project_audit_api_projects__project_id__audit_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact action, or a prefix ending in \".\"",
+              "title": "Action"
+            },
+            "description": "Exact action, or a prefix ending in \".\""
+          },
+          {
+            "name": "actor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only entries with a smaller id",
+              "title": "Before"
+            },
+            "description": "Only entries with a smaller id"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPage"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client error: {\"detail\": \"...\"}",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4796,6 +5086,17 @@
             "type": "string",
             "title": "Secret Key",
             "description": "Shown once; only a hash is stored."
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
           }
         },
         "additionalProperties": false,
@@ -4836,7 +5137,35 @@
                 "type": "null"
               }
             ],
-            "title": "Last Used"
+            "title": "Last Used",
+            "description": "Updated at most once a minute per server process."
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "rotated_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotated To",
+            "description": "The key that replaced this one, if rotated."
+          },
+          "expired": {
+            "type": "boolean",
+            "title": "Expired"
           }
         },
         "additionalProperties": false,
@@ -4845,9 +5174,165 @@
           "public_key",
           "name",
           "created",
-          "last_used"
+          "last_used",
+          "expires_at",
+          "rotated_to",
+          "expired"
         ],
         "title": "ApiKeyInfo"
+      },
+      "ApiKeyRotated": {
+        "properties": {
+          "public_key": {
+            "type": "string",
+            "title": "Public Key"
+          },
+          "secret_key": {
+            "type": "string",
+            "title": "Secret Key",
+            "description": "Shown once; only a hash is stored."
+          },
+          "previous_key": {
+            "type": "string",
+            "title": "Previous Key"
+          },
+          "previous_expires_at": {
+            "type": "number",
+            "title": "Previous Expires At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "public_key",
+          "secret_key",
+          "previous_key",
+          "previous_expires_at"
+        ],
+        "title": "ApiKeyRotated"
+      },
+      "AuditEntry": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "at": {
+            "type": "number",
+            "title": "At"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor",
+            "description": "Email, ``api:<public key>``, or the email tried at sign-in."
+          },
+          "actor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Id"
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          },
+          "detail": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Json"
+            },
+            "type": "object",
+            "title": "Detail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "at",
+          "actor",
+          "actor_id",
+          "ip",
+          "action",
+          "project_id",
+          "target",
+          "detail"
+        ],
+        "title": "AuditEntry"
+      },
+      "AuditPage": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEntry"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "next_before": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Before",
+            "description": "Pass as ``before`` for the next (older) page."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "entries",
+          "next_before"
+        ],
+        "title": "AuditPage"
       },
       "CompareItem": {
         "properties": {
@@ -5204,6 +5689,18 @@
               }
             ],
             "title": "Name"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At",
+            "description": "Unix seconds; the key stops working then."
           }
         },
         "type": "object",
@@ -7303,6 +7800,12 @@
               "viewer"
             ],
             "title": "Role"
+          },
+          "redactions": {
+            "type": "integer",
+            "title": "Redactions",
+            "description": "Values redacted at ingestion (server and SDK).",
+            "default": 0
           }
         },
         "additionalProperties": false,
@@ -7361,6 +7864,22 @@
       },
       "ProjectSettings": {
         "properties": {
+          "redact_mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "off",
+                  "secrets",
+                  "strict"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redact Mode"
+          },
           "redact": {
             "anyOf": [
               {
@@ -7769,6 +8288,26 @@
           "pattern"
         ],
         "title": "RedactPattern"
+      },
+      "RotateKeyRequest": {
+        "properties": {
+          "overlap_s": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 2592000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overlap S",
+            "description": "How long the old key keeps working (default 1 day)."
+          }
+        },
+        "type": "object",
+        "title": "RotateKeyRequest"
       },
       "Rubric": {
         "properties": {
@@ -8634,6 +9173,23 @@
       },
       "SettingsUpdate": {
         "properties": {
+          "redact_mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "off",
+                  "secrets",
+                  "strict"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redact Mode",
+            "description": "PII redaction at ingestion: off, secrets (keys, tokens, cards, IBANs, passwords) or strict (also emails, phone numbers and IP addresses)."
+          },
           "redact": {
             "anyOf": [
               {
@@ -8643,7 +9199,8 @@
                 "type": "null"
               }
             ],
-            "title": "Redact"
+            "title": "Redact",
+            "description": "Deprecated: true = strict, false = off."
           },
           "redact_patterns": {
             "anyOf": [
