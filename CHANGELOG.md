@@ -12,6 +12,8 @@ All notable changes to Tirkit are recorded here. The format follows
 - Request validation errors return 400 with `{"detail": "..."}` like every other error.
 - The web UI's API types are generated from the server's OpenAPI schema (`make api`).
 - Repository layout: `SPEC.md` and `PLAN.md` moved to `docs/`; contributor and policy files (`CONTRIBUTING.md`, `CLA.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`) moved to `.github/`; `benchmarks/`, `experiments/` and `evals/` moved under `research/`; tool caches and the built docs site go to `.cache/`.
+- `tirkit.otel` is a package (`tirkit.otel.mapping` holds the attribute tables); its public functions are unchanged. Instrumentation wrappers can now patch module-level functions and positional arguments (internal `CallSpec` options).
+- Model price lookup also tries `mistral/`, `cohere/` and `vertex_ai/` prefixed names and strips Bedrock region prefixes (`us.`, `eu.`...).
 
 ### Added
 - Complete OpenAPI schema: every route has request and response models; checked in as `docs/api/openapi.json` and kept current by CI.
@@ -59,6 +61,13 @@ All notable changes to Tirkit are recorded here. The format follows
 - Apache-2.0 licence, NOTICE, Contributor License Agreement and CLA bot.
 - Contributing guide, Code of Conduct, security policy, issue and pull-request templates.
 - Secret scanning (gitleaks) in CI.
+- OpenTelemetry parity: OTLP spans get the same cost, redaction, session, user and media handling as SDK spans. One mapping module (`tirkit/otel/mapping.py`) covers the GenAI conventions, OpenInference, OpenLLMetry and the Vercel AI SDK; tested with real OTel exporters (Python HTTP and gRPC, Node) and the OpenInference, OpenLLMetry and OpenTelemetry OpenAI instrumentations.
+- Optional OTLP/gRPC receiver on its own port (`tirkit serve --otlp-grpc-port`, extra `tirkit[otlp-grpc]`), an OpenTelemetry Collector config (`examples/otel-collector.yaml`) and a "Bring your own OpenTelemetry" quickstart.
+- Auto-instrumentation for Amazon Bedrock (boto3, aioboto3), Mistral, Cohere, Vertex AI (legacy `vertexai` SDK) and LiteLLM.
+- Integrations for the OpenAI Agents SDK, LlamaIndex, DSPy and CrewAI (`tirkit.instrument("openai_agents" | "llamaindex" | "dspy" | "crewai")`).
+- Span kinds `vector_db`, `mcp_tool`, `human`, `computer_use`, `retry` and `fallback`; `tirkit.retry`, `tirkit.with_retry` and `tirkit.fallback` record attempts and the option that answered; `Span.mark_first_token()`.
+- Trace sampling: `tirkit.init(sample_rate=..., sampling_rules=[...])`, `TIRKIT_SAMPLE_RATE`; whole traces kept or dropped, failed spans always kept.
+- `reasoning_tokens` usage unit (OpenAI, Gemini, OTLP); dashboard metrics report prompt-cache hit rate, reasoning tokens and time to first token p50/p95.
 
 ### Fixed
 - Alerts created through the API without `window_s` showed "NaN min" in the UI.
