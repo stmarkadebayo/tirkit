@@ -4,6 +4,7 @@ from tirkit.client import Tirkit, feedback, flush, get_client, init
 from tirkit.media import Attachment
 from tirkit.pricing import register_price
 from tirkit.prompts import Prompt, get_prompt
+from tirkit.resilience import fallback, retry, with_retry
 from tirkit.tracing import (
     Span,
     copy_context_run,
@@ -23,6 +24,7 @@ __all__ = [
     "Span",
     "copy_context_run",
     "current_span",
+    "fallback",
     "feedback",
     "finish_span",
     "flush",
@@ -32,10 +34,12 @@ __all__ = [
     "init",
     "instrument",
     "register_price",
+    "retry",
     "span",
     "start_span",
     "trace",
     "trace_context",
+    "with_retry",
 ]
 
 
