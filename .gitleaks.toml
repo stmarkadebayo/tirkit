@@ -1,0 +1,8 @@
+# The local-development seed login in examples/seed_dev.py is a documented test value.
+# tests/fixtures/pii.jsonl holds fake keys (AWS's documented example key and placeholders) for the redaction tests.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "documented development-only test credentials and fake keys in redaction fixtures"
+paths = ['''examples/seed_dev\.py''', '''tests/fixtures/pii\.jsonl''']

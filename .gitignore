@@ -1,0 +1,54 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.coverage
+.coverage.*
+htmlcov/
+
+# Tool caches and build output (pytest, ruff, mypy, mkdocs all write under .cache/)
+.cache/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+
+# Node
+node_modules/
+*.tsbuildinfo
+.vite/
+playwright-report/
+test-results/
+coverage/
+
+# Private notes (research, study guide, drafts, design notes)
+docs/internal/
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+.claude/
+
+# Local databases, media and logs (never commit raw data)
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.duckdb
+tirkit-media/
+*.log
+!research/experiments/results/**/*.log
+data/raw/
+data/cache/
+artifacts/
+labels/private/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,15 @@
+.git
+.venv
+**/__pycache__
+**/*.db
+**/*.db-*
+tirkit-media
+web/node_modules
+web/dist
+.env
+.claude
+research
+docs
+.github
+.cache
+tests
