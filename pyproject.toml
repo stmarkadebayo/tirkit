@@ -39,6 +39,7 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.10",
     "import-linter>=2.1",
+    "jsonschema>=4.18",
     # Provider SDKs, only to test instrumentation against the real clients.
     "openai>=2",
     "anthropic>=1",
@@ -70,7 +71,13 @@ target-version = "py311"
 select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.lint.flake8-bugbear]
-extend-immutable-calls = ["typer.Option", "typer.Argument", "fastapi.Depends"]
+extend-immutable-calls = [
+    "typer.Option",
+    "typer.Argument",
+    "fastapi.Depends",
+    "fastapi.Body",
+    "fastapi.Query",
+]
 
 [tool.ruff.lint.per-file-ignores]
 # Test fixtures and benchmark payloads are clearer as long literal lines.
@@ -85,6 +92,7 @@ pythonpath = ["src"]
 markers = [
     "acceptance: definition-of-done tests from docs/SPEC.md; they fail until the feature is built",
     "postgres: needs TIRKIT_TEST_POSTGRES_URL (a scratch Postgres database)",
+    "server: needs the server extra (FastAPI); see make test-server",
 ]
 
 [tool.mypy]
