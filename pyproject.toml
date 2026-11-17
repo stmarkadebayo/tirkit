@@ -57,6 +57,15 @@ dev = [
     "openinference-instrumentation-openai>=0.1.30",
     "opentelemetry-instrumentation-openai>=0.40",
     "opentelemetry-instrumentation-openai-v2>=2.0b0,<2.4",
+    # Adapter and integration tests (fake or mocked transports; CrewAI is too large and is run
+    # separately, see docs/DECISIONS.md).
+    "boto3>=1.34",
+    "mistralai>=1.0",
+    "cohere>=5.13",
+    "litellm>=1.50",
+    "openai-agents>=0.2",
+    "llama-index-core>=0.12",
+    "dspy>=2.6",
     "wrapt<2",  # the OpenTelemetry OpenAI instrumentation breaks on wrapt 2
 ]
 
