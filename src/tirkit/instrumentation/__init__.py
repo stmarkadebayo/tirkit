@@ -8,7 +8,12 @@ from tirkit.instrumentation._patch import unpatch_all
 
 
 def _registry() -> dict[str, Callable[[], bool]]:
-    from tirkit.instrumentation import anthropic, gemini, openai
+    from tirkit.instrumentation import (
+        anthropic,
+        gemini,
+        mistral,
+        openai,
+    )
 
     def transformers() -> bool:
         from tirkit.integrations.transformers import instrument as hf
@@ -19,6 +24,7 @@ def _registry() -> dict[str, Callable[[], bool]]:
         "openai": openai.instrument,
         "anthropic": anthropic.instrument,
         "gemini": gemini.instrument,
+        "mistral": mistral.instrument,
         "transformers": transformers,
     }
 
