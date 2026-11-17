@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 
 import pytest
@@ -116,9 +117,11 @@ class PositionBiasedJudge:
     model = "biased"
 
     def __call__(self, prompt: str) -> str:
-        if "<output_a>" in prompt:
+        if "<output_a" in prompt:  # the tags carry a random suffix when the judge is hardened
             return '{"winner": "A", "reason": "first"}'
-        out = prompt.split("<output>")[1].split("</output>")[0]
+        out = re.search(r"<output(?:-\w+)?>\n?(.*?)\n?</output(?:-\w+)?>", prompt, re.DOTALL).group(
+            1
+        )
         n = max(1, min(5, len(out.split())))
         return f'{{"score": {n}, "reason": "length"}}'
 

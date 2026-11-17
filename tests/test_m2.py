@@ -174,7 +174,7 @@ def test_judge_parses_score_and_reason() -> None:
     m = FakeModel(['Thinking... {"score": 4, "reason": "close"}'])
     s = LLMJudge(m, "correctness").score(Example({"q": "2+2"}, expected="4"), "four")
     assert s.value == 4.0 and s.reason == "close"
-    assert "<expected>" in m.prompts[0] and "5: fully correct" in m.prompts[0]
+    assert "<expected-" in m.prompts[0] and "5: fully correct" in m.prompts[0]  # nonce-tagged
 
 
 def test_judge_retries_once_then_records_failure() -> None:
