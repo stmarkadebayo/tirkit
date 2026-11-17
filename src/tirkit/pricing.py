@@ -5,6 +5,8 @@ Usage units (all optional, non-negative):
 - ``input_tokens``: all input tokens, every modality, cached or not.
 - ``cached_input_tokens``, ``cache_write_tokens``, ``input_audio_tokens``: subsets of input tokens.
 - ``output_tokens``: all output tokens; ``output_audio_tokens`` is a subset.
+- ``reasoning_tokens``: the subset of output tokens spent on reasoning (thinking). Recorded for
+  analysis only: providers bill them as output tokens, so they are not priced separately.
 - ``input_audio_seconds``, ``output_audio_seconds``: speech-to-text input, text-to-speech output.
 - ``input_characters``, ``output_characters``: e.g. text-to-speech input.
 - ``input_images``, ``output_images``: e.g. image generation.

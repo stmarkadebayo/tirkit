@@ -49,6 +49,7 @@ def _chat_usage(s: Span, usage: Any) -> None:
     )
     reasoning = get(usage, "completion_tokens_details", "reasoning_tokens")
     if reasoning:
+        s.set_usage(reasoning_tokens=reasoning)
         s.attributes["reasoning_tokens"] = reasoning
 
 
@@ -151,6 +152,7 @@ def _responses_result(s: Span, res: Any, kw: dict[str, Any]) -> None:
         )
         reasoning = get(usage, "output_tokens_details", "reasoning_tokens")
         if reasoning:
+            s.set_usage(reasoning_tokens=reasoning)
             s.attributes["reasoning_tokens"] = reasoning
 
 
