@@ -93,6 +93,7 @@ def test_datasets_experiments_scores(pg) -> None:
     assert pg.query_scores(trace_id="t1")[0]["value"] == 1.0
 
 
+@pytest.mark.server
 def test_server_on_postgres(tmp_path, pg) -> None:
     from fastapi.testclient import TestClient
 

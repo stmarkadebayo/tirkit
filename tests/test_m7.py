@@ -12,6 +12,7 @@ from tirkit.server.app import create_app  # noqa: E402
 from tirkit.tracing import Span  # noqa: E402
 
 
+@pytest.mark.server
 def test_score_configs_queue_labelling_and_export(tmp_path) -> None:
     with TestClient(create_app(make_settings(tmp_path))) as c:
         pid, _ = setup_admin(c)

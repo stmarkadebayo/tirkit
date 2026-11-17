@@ -1,0 +1,54 @@
+# Labels pull requests by the area they touch (actions/labeler v5 format).
+"area:sdk":
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/tirkit/tracing.py
+          - src/tirkit/exporter.py
+          - src/tirkit/client.py
+          - src/tirkit/http.py
+          - src/tirkit/otel.py
+          - src/tirkit/instrumentation/**
+          - src/tirkit/integrations/**
+          - sdk-ts/**
+"area:eval":
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/tirkit/datasets.py
+          - src/tirkit/scorers.py
+          - src/tirkit/scorer_specs.py
+          - src/tirkit/judge.py
+          - src/tirkit/runner.py
+          - src/tirkit/reliability.py
+          - src/tirkit/report.py
+          - src/tirkit/providers.py
+          - src/tirkit/stats.py
+          - research/**
+"area:server":
+  - changed-files:
+      - any-glob-to-any-file:
+          - src/tirkit/server/**
+          - src/tirkit/store/**
+          - src/tirkit/accounts.py
+          - src/tirkit/alerts.py
+          - src/tirkit/annotation.py
+          - src/tirkit/jobs.py
+          - src/tirkit/online.py
+          - src/tirkit/prompts.py
+          - src/tirkit/worker_tasks.py
+          - docs/api/**
+"area:web":
+  - changed-files:
+      - any-glob-to-any-file:
+          - web/**
+"area:docs":
+  - changed-files:
+      - any-glob-to-any-file:
+          - docs/**
+          - README.md
+          - mkdocs.yml
+"area:deploy":
+  - changed-files:
+      - any-glob-to-any-file:
+          - Dockerfile
+          - docker-compose.yml
+          - .github/workflows/**
