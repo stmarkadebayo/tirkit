@@ -1,0 +1,92 @@
+# Operations: the restore drill (backup, wipe, restore, compare) on SQLite and Postgres, and the Helm
+# chart (helm lint, then kubeconform on the rendered manifests). Also runs weekly, so a drill that
+# starts failing because of a dependency is noticed without a code change.
+name: ops
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/tirkit/store/**"
+      - "src/tirkit/cli.py"
+      - "scripts/restore_drill.py"
+      - "deploy/**"
+      - "pyproject.toml"
+      - ".github/workflows/ops.yml"
+  pull_request:
+    paths:
+      - "src/tirkit/store/**"
+      - "src/tirkit/cli.py"
+      - "scripts/restore_drill.py"
+      - "deploy/**"
+      - "pyproject.toml"
+      - ".github/workflows/ops.yml"
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+jobs:
+  restore-drill:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tirkit
+          POSTGRES_PASSWORD: tirkit
+          POSTGRES_DB: tirkit
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tirkit" --health-interval 5s --health-retries 20
+    env:
+      PG_URL: postgresql://tirkit:tirkit@localhost:5432/tirkit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[server]"
+      - name: Postgres 16 client tools (pg_dump must match the server's major version)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-client-16
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - run: pg_dump --version
+      - name: Drill on SQLite
+        run: >-
+          python scripts/restore_drill.py --yes --seed 2000
+          --database-url "$RUNNER_TEMP/drill.db" --media-dir "$RUNNER_TEMP/drill-media"
+      - name: Drill on Postgres
+        run: >-
+          python scripts/restore_drill.py --yes --seed 2000
+          --database-url "$PG_URL" --media-dir "$RUNNER_TEMP/pg-media"
+
+  helm:
+    runs-on: ubuntu-latest
+    env:
+      CHART: deploy/helm/tirkit
+      KUBECONFORM_VERSION: v0.6.7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.3
+      - name: Install kubeconform
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -sSfL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar xz -C "$RUNNER_TEMP/bin" kubeconform
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: helm lint
+        run: |
+          helm lint --strict "$CHART"
+          helm lint --strict "$CHART" -f deploy/helm/ci/external-db.yaml
+          helm lint --strict "$CHART" -f deploy/helm/ci/existing-secret.yaml
+      - name: kubeconform (Kubernetes 1.29 and 1.31)
+        run: |
+          for values in default external-db existing-secret; do
+            args=()
+            [ "$values" != default ] && args=(-f "deploy/helm/ci/$values.yaml")
+            helm template tirkit "$CHART" "${args[@]}" > "$RUNNER_TEMP/$values.yaml"
+            for k8s in 1.29.0 1.31.0; do
+              kubeconform -strict -summary -kubernetes-version "$k8s" "$RUNNER_TEMP/$values.yaml"
+            done
+          done
