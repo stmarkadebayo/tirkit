@@ -18,6 +18,7 @@ All notable changes to Tirkit are recorded here. The format follows
 - Ingestion decodes, validates and writes off the event loop, so `/api/health` stays fast while a slow batch is written.
 - SDK retries honour `Retry-After`, use jittered exponential backoff and stop after 30 s (Python and TypeScript); the Python exporter defaults to 5 retries instead of 3.
 - The trace page draws only the rows in view and shows every span of a trace, including spans in parent cycles, self-parents and orphans (previously these disappeared); the span tree is built without quadratic copying.
+- The LLM judge's hardened prompt (random delimiters, strict reply format) is off by default; `LLMJudge(hardened=True)` turns it on. The `suspect_injection` flag stays on in every mode.
 
 ### Added
 - Complete OpenAPI schema: every route has request and response models; checked in as `docs/api/openapi.json` and kept current by CI.
