@@ -40,6 +40,8 @@ UNITS = (
     "requests",
 )
 
+_PROVIDER_PREFIXES = ("mistral", "cohere", "vertex_ai")
+_REGION_PREFIXES = ("us.", "eu.", "apac.", "global.", "jp.")
 _overrides: dict[str, dict[str, float]] = {}
 _lock = threading.Lock()
 
@@ -71,6 +73,12 @@ def lookup_price(model: str) -> dict[str, float] | None:
     candidates = [model]
     if "/" in model:
         candidates.append(model.split("/", 1)[1])
+    else:
+        # LiteLLM's table names some providers' models with a prefix (``mistral/...``).
+        candidates.extend(f"{p}/{model}" for p in _PROVIDER_PREFIXES)
+    for region in _REGION_PREFIXES:  # Bedrock cross-region inference profiles: us.amazon.nova...
+        if model.startswith(region):
+            candidates.append(model[len(region) :])
     for table in tables:
         for name in candidates:
             if name in table:
