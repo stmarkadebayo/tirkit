@@ -150,6 +150,7 @@ def test_flip_rate_excludes_ties() -> None:
     assert flip_rate(pairs) == (0.5, 2)
 
 
+@pytest.mark.server
 def test_judge_report_job_on_queue_labels(tmp_path, fake_llm) -> None:
     from fastapi.testclient import TestClient
 

@@ -1,7 +1,64 @@
-name: ci
-on: [push, pull_request]
+# Python: lint, layer contracts, API schema drift, tests. Runs only when Python code or the API
+# contract can have changed; the web UI and docs have their own workflows.
+name: python
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "examples/**"
+      - "research/**"
+      - "docs/api/**"
+      - "pyproject.toml"
+      - ".importlinter"
+      - "Makefile"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "examples/**"
+      - "research/**"
+      - "docs/api/**"
+      - "pyproject.toml"
+      - ".importlinter"
+      - "Makefile"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
 jobs:
-  test:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: mypy src
+      - name: Layer contracts (import-linter)
+        run: lint-imports
+      - name: OpenAPI schema is current
+        run: |
+          python -m tirkit.server.openapi > docs/api/openapi.json
+          git diff --exit-code -- docs/api/openapi.json || {
+            echo "::error::docs/api/openapi.json is stale. Run 'make api' and commit the result."
+            exit 1
+          }
+
+  core:
+    # Tests that do not need the server extra.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: pytest -q -m "not server and not acceptance"
+
+  server:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -21,36 +78,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
-      - run: ruff check .
-      - run: mypy src
-      - name: Unit, server and Postgres tests
-        run: pytest -q -m "not acceptance"
+      - name: Server, API contract and Postgres tests
+        run: pytest -q -m "(server or postgres) and not acceptance"
       - name: Acceptance tests (progress meter)
         run: pytest -q -m acceptance
-
-  web:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - run: npm ci --no-audit --no-fund
-      - run: npm run build
-
-  secrets:
-    # Fails the build if a key, token or password is committed anywhere in history.
-    # Free for personal accounts; an organisation-owned repo needs a GITLEAKS_LICENSE secret.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

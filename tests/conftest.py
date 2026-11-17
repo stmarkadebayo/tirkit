@@ -15,6 +15,17 @@ from fastapi import FastAPI, Request
 from tirkit.store import SQLiteStore
 from tirkit.tracing import Span, set_default_sink
 
+# Tests that use these fixtures need the server extra; they are marked ``server`` automatically
+# (tests that build the app inline carry ``@pytest.mark.server`` themselves). ``make test-core``
+# runs everything else, ``make test-server`` runs these.
+SERVER_FIXTURES = {"client", "live_server", "seeded", "server"}
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    for item in items:
+        if SERVER_FIXTURES & set(getattr(item, "fixturenames", ())):
+            item.add_marker(pytest.mark.server)
+
 
 class ListSink:
     """Collects finished spans in memory."""

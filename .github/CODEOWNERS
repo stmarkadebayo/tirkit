@@ -1,0 +1,31 @@
+# Who reviews what. Later rules win. Add co-owners per area as maintainers join.
+# Areas match the PR labels in .github/labeler.yml and the table in .github/CONTRIBUTING.md.
+
+*                                   @stmarkadebayo
+
+# SDK: tracing, exporter, client, instrumentation, integrations
+/src/tirkit/tracing.py              @stmarkadebayo
+/src/tirkit/exporter.py             @stmarkadebayo
+/src/tirkit/client.py               @stmarkadebayo
+/src/tirkit/instrumentation/        @stmarkadebayo
+/src/tirkit/integrations/           @stmarkadebayo
+/sdk-ts/                            @stmarkadebayo
+
+# Evaluation: datasets, scorers, judge, runner, reliability, stats
+/src/tirkit/judge.py                @stmarkadebayo
+/src/tirkit/reliability.py          @stmarkadebayo
+/src/tirkit/stats.py                @stmarkadebayo
+
+# Server, storage and the API contract
+/src/tirkit/server/                 @stmarkadebayo
+/src/tirkit/store/                  @stmarkadebayo
+/docs/api/                          @stmarkadebayo
+/.importlinter                      @stmarkadebayo
+
+# Web UI
+/web/                               @stmarkadebayo
+
+# Deploy and CI
+/Dockerfile                         @stmarkadebayo
+/docker-compose.yml                 @stmarkadebayo
+/.github/                           @stmarkadebayo

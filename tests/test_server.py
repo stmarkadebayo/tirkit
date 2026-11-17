@@ -378,6 +378,7 @@ def test_sdk_server_mode_with_media_and_feedback(live_server) -> None:
     assert detail["scores"][0]["source"] == "user_feedback" and detail["scores"][0]["value"] == 1
 
 
+@pytest.mark.server
 def test_serves_built_ui_with_spa_fallback(tmp_path) -> None:
     web = tmp_path / "web"
     (web / "assets").mkdir(parents=True)
