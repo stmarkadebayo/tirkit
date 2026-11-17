@@ -13,9 +13,14 @@ worker (UI experiments, online evals, alerts, retention).
 | `ANTHROPIC_API_KEY` | Enables `anthropic/<model>` in the playground and judges |
 | `TIRKIT_SMTP_HOST`, `_PORT`, `_USER`, `_PASSWORD`, `_FROM` | Email alerts |
 | `TIRKIT_ADMIN_EMAIL`, `TIRKIT_ADMIN_PASSWORD` | Create the first admin at startup instead of the setup page |
+| `TIRKIT_TRUSTED_PROXIES` | Number of reverse proxies that append to `X-Forwarded-For` (default 0) |
+| `TIRKIT_CORS_ORIGINS` | Browser origins allowed to send traces directly (default: none) |
+| `TIRKIT_INGEST_SPANS_PER_S`, `TIRKIT_INGEST_BURST` | Per-API-key ingest limit (default 5,000 spans/s, 0 disables) |
+| `TIRKIT_ALLOW_PRIVATE_WEBHOOKS` | `1` lets alert webhooks target private addresses |
 
-**HTTPS.** Put a reverse proxy (Caddy, nginx, a cloud load balancer) in front and remove
-`TIRKIT_INSECURE_COOKIES` so session cookies are `Secure`.
+**HTTPS.** Put a reverse proxy (Caddy, nginx, a cloud load balancer) in front, remove
+`TIRKIT_INSECURE_COOKIES` so session cookies are `Secure`, and set `TIRKIT_TRUSTED_PROXIES` so
+per-address limits see the real client address (see [Security](security.md)).
 
 **Data.** Traces, scores and datasets live in Postgres; media files in the `media` volume. Set a
 retention period per project in **Settings**; the worker deletes older traces hourly. Back up with
@@ -37,9 +42,14 @@ trace-list queries at most 83 ms p95 with 1 million spans (see README Results fo
 
 ## Security
 
-- API keys and passwords are argon2-hashed; secrets are shown once.
+Defaults, limits and what Tirkit does not do (encryption at rest, for one) are on the
+[Security](security.md) page. In short:
+
+- API keys and passwords are argon2-hashed; secrets are shown once; keys can expire and be rotated.
 - Every project-scoped query is bound to the caller's project; API keys work only for their project.
-- Sessions use HttpOnly cookies; state-changing UI requests need a CSRF token.
-- Uploaded media is served with `Content-Security-Policy: sandbox` and `nosniff`.
-- PII redaction can run at ingest, per project, with custom patterns.
+- Sessions use HttpOnly cookies; state-changing UI requests need a CSRF token; sign-ins are throttled.
+- Responses carry a strict CSP and other security headers; CORS is same-origin unless you allow origins.
+- Webhook URLs cannot reach private or metadata addresses (SSRF guard).
+- Ingestion is rate-limited per API key; an audit log records who changed what.
+- PII redaction (`off`, `secrets`, `strict`) can run at ingest per project and in the SDK.
 - Report vulnerabilities privately (see `SECURITY.md`).

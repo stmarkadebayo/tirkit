@@ -21,6 +21,7 @@ tirkit.instrument()  # every installed SDK; or tirkit.instrument("openai", "bedr
 | `tirkit.init(sample_rate=0.1, sampling_rules=[...])` / `tirkit.set_sampling(...)` | Keep a fraction of traces (see below) |
 | `span.mark_first_token()` | Record time to first token for a stream you handle yourself |
 | `tirkit.flush()` | Write queued spans now (also done at exit) |
+| `tirkit.init(redact="strict")` | Redact PII before spans leave your process (`"off"`, `"secrets"`, `"strict"`; also `TIRKIT_REDACT`). Runs in the background exporter thread; see [Security](security.md) |
 | `tirkit.register_price("my-model", input_tokens=2e-6, output_tokens=8e-6)` | Price a model |
 
 ## Delivery

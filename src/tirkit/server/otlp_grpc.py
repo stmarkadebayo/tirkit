@@ -48,7 +48,12 @@ def make_servicer(app: FastAPI) -> Any:
                 spans = otlp_to_spans(MessageToDict(request), from_proto=True)
                 save_otlp_spans(call, pid, spans)
             except HTTPException as exc:
-                context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc.detail))
+                code = (
+                    grpc.StatusCode.RESOURCE_EXHAUSTED
+                    if exc.status_code == 429
+                    else grpc.StatusCode.INVALID_ARGUMENT
+                )
+                context.abort(code, str(exc.detail))
             return trace_service_pb2.ExportTraceServiceResponse()
 
     return TraceService()

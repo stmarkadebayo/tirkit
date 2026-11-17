@@ -14,6 +14,7 @@ nav:
   - Evaluating changes: evaluation.md
   - Self-hosting: self-hosting.md
   - Operations: operations.md
+  - Security: security.md
   - HTTP API: api.md
 theme:
   name: material

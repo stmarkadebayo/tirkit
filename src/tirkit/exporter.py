@@ -26,9 +26,12 @@ from collections import deque
 from typing import Any, Protocol
 
 from tirkit.media import MediaStore, extract_media
+from tirkit.redact import MODES, SDK_REDACTIONS_ATTR, Redactor
 from tirkit.tracing import Span
 
 log = logging.getLogger("tirkit")
+
+MAX_RATE_LIMIT_WAIT_S = 60.0  # longest total wait on 429 responses for one batch
 
 
 class BatchTarget(Protocol):
@@ -59,7 +62,14 @@ class BatchExporter:
         interval_s: float = 0.25,
         max_retries: int = 5,
         max_retry_s: float = 30.0,
+        redact: str | None = None,
+        redact_patterns: list[tuple[str, str]] | None = None,
     ) -> None:
+        if redact is not None and redact not in MODES:
+            raise ValueError(f"redact must be one of {MODES}")
+        self.redact = redact
+        self.redact_patterns = list(redact_patterns or [])
+        self.redacted = 0
         self.target = target
         self.media_store = media_store
         self.max_queue = max_queue
@@ -70,6 +80,7 @@ class BatchExporter:
         self.dropped = 0
         self.exported = 0
         self.failed = 0
+        self.throttled = 0  # times a batch waited for a 429 Retry-After
         self._queue: deque[Span] = deque()
         self._stop = False
         self._start()
@@ -121,6 +132,16 @@ class BatchExporter:
                 span.attributes = extract_media(span.attributes, self.media_store)
         except Exception:  # noqa: BLE001
             log.warning("tirkit: media extraction failed for span %s", span.name, exc_info=True)
+        if self.redact and self.redact != "off":
+            # Runs here, in the exporter thread, so redaction never slows the traced code.
+            r = Redactor(self.redact, self.redact_patterns)
+            span.input = r.obj(span.input)
+            span.output = r.obj(span.output)
+            span.attributes = r.obj(span.attributes) or {}
+            span.error = r.text(span.error) if span.error else span.error
+            if r.count:
+                span.attributes[SDK_REDACTIONS_ATTR] = r.count
+                self.redacted += r.count
         return span
 
     def _write(self, batch: list[Span]) -> None:
@@ -129,6 +150,7 @@ class BatchExporter:
         says it is not retryable (``exc.retryable is False``, e.g. HTTP 400) fails at once."""
         batch = [self._prepare(s) for s in batch]
         deadline = time.monotonic() + self.max_retry_s
+        patience = time.monotonic() + MAX_RATE_LIMIT_WAIT_S
         attempt = 0
         while True:
             try:
@@ -136,26 +158,42 @@ class BatchExporter:
                 self.exported += len(batch)
                 return
             except Exception as exc:  # noqa: BLE001
-                wait = self._retry_wait(exc, attempt, deadline)
+                wait = self._retry_wait(exc, attempt, deadline, patience)
                 if wait is None:
                     self.failed += len(batch)
                     log.warning(
                         "tirkit: failed to export %d spans: %s", len(batch), exc, exc_info=True
                     )
                     return
+                if getattr(exc, "retry_after", None) is None:
+                    attempt += 1
+                else:
+                    # The server asked us to slow down: that is not a failed attempt.
+                    self.throttled += 1
                 time.sleep(wait)
-                attempt += 1
 
-    def _retry_wait(self, exc: Exception, attempt: int, deadline: float) -> float | None:
-        """Seconds to wait before the next attempt, or None to give up."""
-        if getattr(exc, "retryable", True) is False or attempt >= self.max_retries:
+    def _retry_wait(
+        self, exc: Exception, attempt: int, deadline: float, patience: float
+    ) -> float | None:
+        """Seconds to wait before the next attempt, or None to give up.
+
+        One policy for every failure: an error that says it is not retryable (``retryable is
+        False``, e.g. HTTP 400) fails at once. Otherwise the server's ``Retry-After`` wins over
+        the jittered backoff. Backoff retries are limited by ``max_retries`` and ``max_retry_s``;
+        waiting on a ``Retry-After`` does not use up a retry but must fit in both ``max_retry_s``
+        and ``MAX_RATE_LIMIT_WAIT_S``."""
+        if getattr(exc, "retryable", True) is False:
             return None
         after = getattr(exc, "retry_after", None)
-        if after is not None:
-            wait = float(after) + random.uniform(0.0, min(1.0, 0.1 * float(after)))
-        else:
+        if after is None:
+            if attempt >= self.max_retries:
+                return None
             wait = backoff_delay(attempt)
-        if time.monotonic() + wait > deadline:
+            limit = deadline
+        else:
+            wait = float(after) + random.uniform(0.0, min(1.0, 0.1 * float(after)))
+            limit = min(deadline, patience)
+        if time.monotonic() + wait > limit:
             return None
         return wait
 
@@ -195,6 +233,8 @@ class BatchExporter:
             "exported": self.exported,
             "dropped": self.dropped,
             "failed": self.failed,
+            "throttled": self.throttled,
+            "redacted": self.redacted,
         }
 
 

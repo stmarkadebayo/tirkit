@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from tirkit import jobs
 from tirkit.alerts import Alerts
 from tirkit.online import Evaluators, spend_today
 from tirkit.server import models as m
 from tirkit.server.deps import Ctx, json_response, project_ctx
+from tirkit.server.security import audit_event
 
 router = APIRouter(tags=["online"])
 
@@ -49,9 +50,12 @@ def toggle_evaluator(
 
 
 @router.delete("/api/projects/{project_id}/evaluators/{evaluator_id}", response_model=m.Ok)
-def delete_evaluator(evaluator_id: str, ctx: Ctx = Depends(project_ctx)) -> Response:
+def delete_evaluator(
+    evaluator_id: str, request: Request, ctx: Ctx = Depends(project_ctx)
+) -> Response:
     ctx.require("member")
     Evaluators(ctx.store).delete(evaluator_id)
+    audit_event(request, "evaluator.delete", ctx=ctx, target=evaluator_id)
     return json_response({"ok": True})
 
 
@@ -62,12 +66,22 @@ def list_alerts(ctx: Ctx = Depends(project_ctx)) -> Response:
 
 
 @router.post("/api/projects/{project_id}/alerts", response_model=m.AlertCreated, status_code=201)
-def create_alert(body: m.CreateAlertRequest, ctx: Ctx = Depends(project_ctx)) -> Response:
+def create_alert(
+    body: m.CreateAlertRequest, request: Request, ctx: Ctx = Depends(project_ctx)
+) -> Response:
     ctx.require("admin")
     try:
         aid = Alerts(ctx.store).create(body.name or "alert", body.rule or {}, body.channel or {})
     except (ValueError, KeyError, TypeError) as exc:
         raise HTTPException(400, str(exc)) from exc
+    channel = body.channel or {}
+    audit_event(
+        request,
+        "alert.create",
+        ctx=ctx,
+        target=aid,
+        detail={"channel": channel.get("type"), "url": channel.get("url"), "to": channel.get("to")},
+    )
     return json_response({"alert_id": aid}, 201)
 
 
@@ -82,9 +96,10 @@ def check_alert(alert_id: str, ctx: Ctx = Depends(project_ctx)) -> Response:
 
 
 @router.delete("/api/projects/{project_id}/alerts/{alert_id}", response_model=m.Ok)
-def delete_alert(alert_id: str, ctx: Ctx = Depends(project_ctx)) -> Response:
+def delete_alert(alert_id: str, request: Request, ctx: Ctx = Depends(project_ctx)) -> Response:
     ctx.require("admin")
     Alerts(ctx.store).delete(alert_id)
+    audit_event(request, "alert.delete", ctx=ctx, target=alert_id)
     return json_response({"ok": True})
 
 

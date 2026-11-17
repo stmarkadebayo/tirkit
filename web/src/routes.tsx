@@ -6,6 +6,7 @@ import { Annotation, Labeller } from "./pages/Annotation";
 import { PromptView, Prompts } from "./pages/Prompts";
 import Playground from "./pages/Playground";
 import { AlertsPage, JudgeReliability, OnlineEvals } from "./pages/Online";
+import Audit from "./pages/Audit";
 
 export interface NavItem {
   to: string;
@@ -27,6 +28,7 @@ export const extraRoutes: ReactNode[] = [
   <Route key="online" path="online-evals" element={<OnlineEvals />} />,
   <Route key="alerts" path="alerts" element={<AlertsPage />} />,
   <Route key="judge" path="judge" element={<JudgeReliability />} />,
+  <Route key="audit" path="audit" element={<Audit />} />,
 ];
 
 export const extraNav: NavItem[] = [
@@ -38,4 +40,5 @@ export const extraNav: NavItem[] = [
   { to: "judge", label: "Judge reliability", section: "Evaluate" },
   { to: "prompts", label: "Prompts", section: "Iterate" },
   { to: "playground", label: "Playground", section: "Iterate" },
+  { to: "audit", label: "Audit log", section: "Project" },
 ];

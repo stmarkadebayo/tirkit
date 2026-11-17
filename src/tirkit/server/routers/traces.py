@@ -6,12 +6,13 @@ import time
 from dataclasses import asdict
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
 
 from tirkit.serialize import dumps
 from tirkit.server import models as m
 from tirkit.server.deps import Ctx, json_response, project_ctx
+from tirkit.server.security import audit_event
 
 router = APIRouter(tags=["traces"])
 
@@ -199,8 +200,12 @@ def metrics(
     },
 )
 def export_traces(
-    where: dict[str, Any] = Depends(trace_filters), ctx: Ctx = Depends(project_ctx)
+    request: Request,
+    where: dict[str, Any] = Depends(trace_filters),
+    ctx: Ctx = Depends(project_ctx),
 ) -> StreamingResponse:
+    audit_event(request, "export.traces", ctx=ctx, detail={"filters": where})
+
     def rows() -> Any:
         offset = 0
         while True:

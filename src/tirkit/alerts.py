@@ -2,7 +2,8 @@
 
 A rule names a metric over a trailing window and a threshold. The worker evaluates rules every
 minute and notifies on state changes (ok → firing, firing → ok) through a webhook (Slack-compatible
-``{"text": ...}`` JSON) or email (SMTP settings from ``TIRKIT_SMTP_*``). Every evaluation that
+``{"text": ...}`` JSON, sent through :mod:`tirkit.netguard`) or email (SMTP settings from
+``TIRKIT_SMTP_*``). Every evaluation that
 changes state is logged in ``alert_events``.
 """
 
@@ -16,6 +17,7 @@ import uuid
 from email.message import EmailMessage
 from typing import Any
 
+from tirkit import netguard
 from tirkit.store import SQLStore
 
 log = logging.getLogger("tirkit.alerts")
@@ -35,9 +37,8 @@ def _validate(rule: dict[str, Any], channel: dict[str, Any]) -> None:
         raise ValueError("score_mean alerts need score_name")
     kind = channel.get("type")
     if kind == "webhook":
-        url = str(channel.get("url", ""))
-        if not url.startswith(("https://", "http://")):
-            raise ValueError("webhook url must be http(s)")
+        # Syntax and literal addresses now; delivery resolves the name and checks again.
+        netguard.check_url(str(channel.get("url", "")), dns=False)
     elif kind == "email":
         if "@" not in str(channel.get("to", "")):
             raise ValueError("email channel needs 'to'")
@@ -87,10 +88,7 @@ def measure(store: SQLStore, rule: dict[str, Any], now: float | None = None) -> 
 
 def notify(channel: dict[str, Any], subject: str, text: str) -> None:
     if channel["type"] == "webhook":
-        import httpx
-
-        r = httpx.post(channel["url"], json={"text": f"{subject}\n{text}"}, timeout=10)
-        r.raise_for_status()
+        netguard.post_json(channel["url"], {"text": f"{subject}\n{text}"}, timeout=10)
         return
     host = os.environ.get("TIRKIT_SMTP_HOST")
     if not host:

@@ -1,0 +1,50 @@
+# Known-vulnerability scans of what ships: Python dependencies (pip-audit, against the PyPA
+# advisory database) and the production npm dependencies of the web UI and the TypeScript SDK.
+# Runs on dependency changes and weekly, so a new advisory fails a scheduled run even when no
+# one touched the repository.
+name: audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - "pyproject.toml"
+      - "web/package*.json"
+      - "sdk-ts/package*.json"
+      - ".github/workflows/audit.yml"
+  pull_request:
+    paths:
+      - "pyproject.toml"
+      - "web/package*.json"
+      - "sdk-ts/package*.json"
+      - ".github/workflows/audit.yml"
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+jobs:
+  pip-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the server extra (what the Docker image ships) and pip-audit
+        run: pip install ".[server]" pip-audit
+      - name: Audit installed packages
+        run: pip-audit --strict --skip-editable
+  npm-audit:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir: [web, sdk-ts]
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci --omit=dev --no-fund
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=low

@@ -53,6 +53,8 @@ export type Alert = Schemas["Alert"];
 export type AlertList = Schemas["AlertList"];
 export type JudgeReport = Schemas["JudgeReport"];
 export type JudgeReports = Schemas["JudgeReports"];
+export type AuditEntry = Schemas["AuditEntry"];
+export type AuditPage = Schemas["AuditPage"];
 
 export class ApiError extends Error {
   constructor(

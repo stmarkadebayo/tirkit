@@ -27,6 +27,10 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       JUDGE_MODEL: ${JUDGE_MODEL:-}
       TIRKIT_EMBEDDED_WORKER: "0"
+      # See docs/site/security.md. Behind one reverse proxy set TIRKIT_TRUSTED_PROXIES=1.
+      TIRKIT_TRUSTED_PROXIES: ${TIRKIT_TRUSTED_PROXIES:-0}
+      TIRKIT_CORS_ORIGINS: ${TIRKIT_CORS_ORIGINS:-}
+      TIRKIT_ALLOW_PRIVATE_WEBHOOKS: ${TIRKIT_ALLOW_PRIVATE_WEBHOOKS:-}
     ports:
       - "${TIRKIT_PORT:-8000}:8000"
     volumes:
@@ -46,6 +50,7 @@ services:
       LLM_API_KEY: ${LLM_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       JUDGE_MODEL: ${JUDGE_MODEL:-}
+      TIRKIT_ALLOW_PRIVATE_WEBHOOKS: ${TIRKIT_ALLOW_PRIVATE_WEBHOOKS:-}  # alerts are sent from here
     volumes:
       - media:/data/media
     depends_on:

@@ -147,7 +147,11 @@ class Exporter {
   private async send(batch: SpanData[]) {
     const body = safeStringify({ spans: batch });
     const deadline = Date.now() + this.opts.maxRetryMs;
-    for (let attempt = 0; ; attempt++) {
+    // A 429 with Retry-After is the server asking us to slow down: it is waited out, not counted as
+    // a failed attempt, but it must fit in maxRetryMs and in 60 s.
+    const patience = Date.now() + 60_000;
+    let attempt = 0;
+    for (;;) {
       try {
         let res: Response;
         try {
@@ -167,9 +171,15 @@ class Exporter {
       } catch (err) {
         const e = err instanceof ExportError ? err : new ExportError(String(err), true);
         let wait: number | null = null;
-        if (e.retryable && attempt < this.opts.maxRetries) {
-          wait = e.retryAfterS !== null ? e.retryAfterS * 1000 + Math.random() * Math.min(1000, 100 * e.retryAfterS) : backoffDelayMs(attempt);
-          if (Date.now() + wait > deadline) wait = null;
+        if (e.retryable) {
+          if (e.retryAfterS !== null) {
+            wait = e.retryAfterS * 1000 + Math.random() * Math.min(1000, 100 * e.retryAfterS);
+            if (Date.now() + wait > Math.min(deadline, patience)) wait = null;
+          } else if (attempt < this.opts.maxRetries) {
+            wait = backoffDelayMs(attempt);
+            attempt++;
+            if (Date.now() + wait > deadline) wait = null;
+          }
         }
         if (wait === null) {
           this.failed += batch.length;

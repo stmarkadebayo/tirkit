@@ -54,6 +54,15 @@ def parse_retry_after(value: str | None) -> float | None:
     return max(0.0, when.timestamp() - time.time())
 
 
+class RateLimited(RetryableHTTPError):
+    """The server answered 429; ``retry_after`` is how many seconds it asked us to wait."""
+
+    def __init__(self, retry_after: float, detail: str = "") -> None:
+        super().__init__(
+            429, retry_after, f"rate limited, retry after {retry_after:g}s {detail}".strip()
+        )
+
+
 class HttpClient:
     """Talks to a Tirkit server with a project API key (HTTP Basic: public key, secret key)."""
 
@@ -100,6 +109,8 @@ class HttpClient:
         if r.is_success:
             return
         retry_after = parse_retry_after(r.headers.get("retry-after"))
+        if r.status_code == 429 and retry_after is not None:
+            raise RateLimited(retry_after)
         if r.status_code in RETRY_STATUSES:
             raise RetryableHTTPError(r.status_code, retry_after)
         raise ExportHTTPError(r.status_code, msg=f"ingest failed with HTTP {r.status_code}")

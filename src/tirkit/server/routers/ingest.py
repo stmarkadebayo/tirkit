@@ -21,7 +21,7 @@ from starlette.concurrency import run_in_threadpool
 
 from tirkit import pricing
 from tirkit.media import LocalMediaStore, extract_media
-from tirkit.redact import redact_obj
+from tirkit.redact import SDK_REDACTIONS_ATTR, Redactor, mode_from_settings
 from tirkit.server import models as m
 from tirkit.server.deps import (
     Ctx,
@@ -29,6 +29,7 @@ from tirkit.server.deps import (
     app_media,
     app_settings,
     app_store,
+    basic_credentials,
     json_response,
     key_project,
     project_ctx,
@@ -37,6 +38,7 @@ from tirkit.server.deps import (
 )
 from tirkit.server.openapi import binary_body, json_body
 from tirkit.server.prometheus import count_spans
+from tirkit.server.security import enforce_ingest_limit
 from tirkit.server.settings import Settings
 from tirkit.store import SQLStore
 from tirkit.types import Span
@@ -47,20 +49,30 @@ _SHA = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _prepare(request: Request, spans: list[Span], pid: str) -> list[Span]:
-    """Validate ids, fill in cost from prices and apply the project's redaction setting."""
+    """Check the key's rate limit, validate ids, fill in cost from prices and apply the project's
+    redaction mode (counting redactions, including those the SDK made before sending)."""
+    creds = basic_credentials(request)
+    enforce_ingest_limit(request, creds[0] if creds else None, len(spans))
     st = project_settings(request, pid)
     store = app_store(request)
     overrides = app_cache(request).get("prices", pid, store.for_project(pid).get_prices)
     extra = [(p["pattern"], p.get("label", "[REDACTED]")) for p in st.get("redact_patterns") or []]
+    redactor = Redactor(mode_from_settings(st), extra)
+    sdk_count = 0
     for s in spans:
         if not s.trace_id or not s.span_id:
             raise HTTPException(400, "every span needs trace_id and span_id")
         if s.cost_usd is None and s.usage:
             s.cost_usd = pricing.cost(s.model, s.usage, overrides)
-        if st.get("redact"):
-            s.input = redact_obj(s.input, extra)
-            s.output = redact_obj(s.output, extra)
-            s.attributes = redact_obj(s.attributes, extra)
+        if redactor.mode != "off":
+            s.input = redactor.obj(s.input)
+            s.output = redactor.obj(s.output)
+            s.attributes = redactor.obj(s.attributes)
+        n = s.attributes.get(SDK_REDACTIONS_ATTR) if s.attributes else None
+        if isinstance(n, int) and not isinstance(n, bool) and 0 < n < 1_000_000:
+            sdk_count += n
+    if redactor.count or sdk_count:
+        store.for_project(pid).add_redactions(redactor.count + sdk_count)
     return spans
 
 

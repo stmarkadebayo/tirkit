@@ -18,6 +18,7 @@ from tirkit.store.datasets import DatasetsMixin
 from tirkit.store.dialect import Dialect, PostgresDialect
 from tirkit.store.experiments import ExperimentsMixin
 from tirkit.store.media import MediaMixin
+from tirkit.store.redaction import RedactionMixin
 from tirkit.store.scores import ScoresMixin
 from tirkit.store.spans import SpansMixin
 
@@ -30,6 +31,7 @@ class SQLStore(
     AnalyticsMixin,
     MediaMixin,
     ConfigMixin,
+    RedactionMixin,
 ):
     """Dialect-neutral store. Subclasses provide a DB-API connection."""
 

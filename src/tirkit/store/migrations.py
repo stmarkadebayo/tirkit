@@ -8,6 +8,39 @@ _FTS_BODY_NEW = (
 )
 
 
+# Phase B tables, shared by both dialects (the append-only triggers differ per dialect).
+_SECURITY = [
+    """CREATE TABLE IF NOT EXISTS rate_limits (
+        key TEXT PRIMARY KEY,
+        a {REAL} NOT NULL,
+        b {REAL} NOT NULL,
+        ts {REAL} NOT NULL,
+        ok INTEGER NOT NULL,
+        updated {REAL} NOT NULL
+    )""",
+    """CREATE TABLE IF NOT EXISTS audit_log (
+        id {AUTOPK},
+        at {REAL} NOT NULL,
+        actor TEXT,
+        actor_id TEXT,
+        ip TEXT,
+        action TEXT NOT NULL,
+        project_id TEXT,
+        target TEXT,
+        detail {JSON}
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_audit_log_at ON audit_log (at)",
+    "CREATE INDEX IF NOT EXISTS ix_audit_log_project ON audit_log (project_id, at)",
+    """CREATE TABLE IF NOT EXISTS redaction_stats (
+        project_id TEXT PRIMARY KEY,
+        n {BIGINT} NOT NULL,
+        updated {REAL} NOT NULL
+    )""",
+    "ALTER TABLE api_keys ADD COLUMN expires_at {REAL}",
+    "ALTER TABLE api_keys ADD COLUMN rotated_to TEXT",
+]
+
+
 # Each migration is a list of statements, or a dict of lists per dialect.
 # {JSON}, {REAL}, {BIGINT} and {AUTOPK} are filled per dialect.
 MIGRATIONS: list[list[str] | dict[str, list[str]]] = [
@@ -379,6 +412,23 @@ MIGRATIONS: list[list[str] | dict[str, list[str]]] = [
             "(to_tsvector('simple', left(coalesce(name, '') || ' ' || coalesce(input::text, '') "
             "|| ' ' || coalesce(output::text, ''), 200000))) STORED",
             "CREATE INDEX IF NOT EXISTS ix_spans_search ON spans USING GIN (search_tsv)",
+        ],
+    },
+    # Security (phase B): shared rate limits, append-only audit log, redaction counts, key expiry.
+    {
+        "sqlite": _SECURITY
+        + [
+            "CREATE TRIGGER IF NOT EXISTS audit_log_no_update BEFORE UPDATE ON audit_log "
+            "BEGIN SELECT RAISE(ABORT, 'audit_log is append-only'); END",
+            "CREATE TRIGGER IF NOT EXISTS audit_log_no_delete BEFORE DELETE ON audit_log "
+            "BEGIN SELECT RAISE(ABORT, 'audit_log is append-only'); END",
+        ],
+        "postgres": _SECURITY
+        + [
+            "CREATE OR REPLACE FUNCTION tirkit_audit_append_only() RETURNS trigger AS $$ "
+            "BEGIN RAISE EXCEPTION 'audit_log is append-only'; END; $$ LANGUAGE plpgsql",
+            "CREATE TRIGGER audit_log_append_only BEFORE UPDATE OR DELETE ON audit_log "
+            "FOR EACH ROW EXECUTE FUNCTION tirkit_audit_append_only()",
         ],
     },
 ]

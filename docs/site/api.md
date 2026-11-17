@@ -14,6 +14,11 @@ Authentication:
 - **Session** (UI): `POST /api/auth/login`, then send the `X-CSRF-Token` header (value of the
   `tirkit_csrf` cookie) on state-changing requests.
 
+Ingestion is limited per API key (5,000 spans per second by default). When the limit is hit the
+server answers `429 Too Many Requests` with a `Retry-After` header; the SDKs wait that long and
+resend. Repeated failed sign-ins are answered with `429` and `Retry-After` too. See
+[Security](security.md).
+
 Main endpoints:
 
 | Method and path | Purpose |

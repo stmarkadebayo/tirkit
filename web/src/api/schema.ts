@@ -200,6 +200,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/keys/{public_key}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate Key
+         * @description Issue a replacement key. The old key keeps working for ``overlap_s`` seconds (default one
+         *     day, 0 to revoke it now) so running apps can switch over without dropping traces.
+         */
+        post: operations["rotate_key_api_projects__project_id__keys__public_key__rotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/keys/{public_key}": {
         parameters: {
             query?: never;
@@ -1131,6 +1152,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Server Audit
+         * @description Every audit event, including sign-ins (server admins only).
+         */
+        get: operations["server_audit_api_admin_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Project Audit
+         * @description This project's audit events (project admins, signed in; API keys cannot read it).
+         */
+        get: operations["project_audit_api_projects__project_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1267,6 +1328,8 @@ export interface components {
              * @description Shown once; only a hash is stored.
              */
             secret_key: string;
+            /** Expires At */
+            expires_at?: number | null;
         };
         /** ApiKeyInfo */
         ApiKeyInfo: {
@@ -1276,8 +1339,70 @@ export interface components {
             name: string | null;
             /** Created */
             created: number;
-            /** Last Used */
+            /**
+             * Last Used
+             * @description Updated at most once a minute per server process.
+             */
             last_used: number | null;
+            /** Expires At */
+            expires_at: number | null;
+            /**
+             * Rotated To
+             * @description The key that replaced this one, if rotated.
+             */
+            rotated_to: string | null;
+            /** Expired */
+            expired: boolean;
+        };
+        /** ApiKeyRotated */
+        ApiKeyRotated: {
+            /** Public Key */
+            public_key: string;
+            /**
+             * Secret Key
+             * @description Shown once; only a hash is stored.
+             */
+            secret_key: string;
+            /** Previous Key */
+            previous_key: string;
+            /** Previous Expires At */
+            previous_expires_at: number;
+        };
+        /** AuditEntry */
+        AuditEntry: {
+            /** Id */
+            id: number;
+            /** At */
+            at: number;
+            /**
+             * Actor
+             * @description Email, ``api:<public key>``, or the email tried at sign-in.
+             */
+            actor: string | null;
+            /** Actor Id */
+            actor_id: string | null;
+            /** Ip */
+            ip: string | null;
+            /** Action */
+            action: string;
+            /** Project Id */
+            project_id: string | null;
+            /** Target */
+            target: string | null;
+            /** Detail */
+            detail: {
+                [key: string]: components["schemas"]["Json"];
+            };
+        };
+        /** AuditPage */
+        AuditPage: {
+            /** Entries */
+            entries: components["schemas"]["AuditEntry"][];
+            /**
+             * Next Before
+             * @description Pass as ``before`` for the next (older) page.
+             */
+            next_before: number | null;
         };
         /** CompareItem */
         CompareItem: {
@@ -1406,6 +1531,11 @@ export interface components {
         CreateKeyRequest: {
             /** Name */
             name?: string | null;
+            /**
+             * Expires At
+             * @description Unix seconds; the key stops working then.
+             */
+            expires_at?: number | null;
         };
         /** CreateProjectRequest */
         CreateProjectRequest: {
@@ -2112,6 +2242,12 @@ export interface components {
              * @enum {string}
              */
             role: "admin" | "member" | "viewer";
+            /**
+             * Redactions
+             * @description Values redacted at ingestion (server and SDK).
+             * @default 0
+             */
+            redactions: number;
         };
         /** ProjectCreated */
         ProjectCreated: {
@@ -2132,6 +2268,8 @@ export interface components {
         };
         /** ProjectSettings */
         ProjectSettings: {
+            /** Redact Mode */
+            redact_mode?: ("off" | "secrets" | "strict") | null;
             /** Redact */
             redact?: boolean | null;
             /** Redact Patterns */
@@ -2254,6 +2392,14 @@ export interface components {
             pattern: string;
             /** Label */
             label?: string | null;
+        };
+        /** RotateKeyRequest */
+        RotateKeyRequest: {
+            /**
+             * Overlap S
+             * @description How long the old key keeps working (default 1 day).
+             */
+            overlap_s?: number | null;
         };
         /** Rubric */
         Rubric: {
@@ -2515,7 +2661,15 @@ export interface components {
          * @description Fields left out keep their current value; ``null`` clears one.
          */
         SettingsUpdate: {
-            /** Redact */
+            /**
+             * Redact Mode
+             * @description PII redaction at ingestion: off, secrets (keys, tokens, cards, IBANs, passwords) or strict (also emails, phone numbers and IP addresses).
+             */
+            redact_mode?: ("off" | "secrets" | "strict") | null;
+            /**
+             * Redact
+             * @description Deprecated: true = strict, false = off.
+             */
             redact?: boolean | null;
             /** Redact Patterns */
             redact_patterns?: components["schemas"]["RedactPattern"][] | null;
@@ -3380,6 +3534,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiKeyCreated"];
+                };
+            };
+            /** @description Client error: {"detail": "..."} */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    rotate_key_api_projects__project_id__keys__public_key__rotate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                public_key: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RotateKeyRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyRotated"];
                 };
             };
             /** @description Client error: {"detail": "..."} */
@@ -5438,6 +5628,81 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobQueued"];
+                };
+            };
+            /** @description Client error: {"detail": "..."} */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    server_audit_api_admin_audit_get: {
+        parameters: {
+            query?: {
+                project_id?: string | null;
+                /** @description Exact action, or a prefix ending in "." */
+                action?: string | null;
+                actor?: string | null;
+                /** @description Only entries with a smaller id */
+                before?: number | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            /** @description Client error: {"detail": "..."} */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    project_audit_api_projects__project_id__audit_get: {
+        parameters: {
+            query?: {
+                /** @description Exact action, or a prefix ending in "." */
+                action?: string | null;
+                actor?: string | null;
+                /** @description Only entries with a smaller id */
+                before?: number | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
                 };
             };
             /** @description Client error: {"detail": "..."} */
