@@ -339,5 +339,103 @@ def judge_report(
         out.write_text(json.dumps({"report": rep, "rows": scored}, indent=1, default=str))
 
 
+def _ops_database_url(database_url: str | None) -> str:
+    url = database_url or os.environ.get("TIRKIT_DATABASE_URL") or os.environ.get("TIRKIT_DB_PATH")
+    if not url:
+        raise typer.BadParameter(
+            "name the database: --database-url, $TIRKIT_DATABASE_URL or $TIRKIT_DB_PATH",
+            param_hint="--database-url",
+        )
+    return url
+
+
+def _ops_media_dir(media_dir: Path | None, no_media: bool) -> Path | None:
+    if no_media:
+        return None
+    if media_dir:
+        return media_dir
+    env = os.environ.get("TIRKIT_MEDIA_DIR")
+    return Path(env) if env else None
+
+
+OPS_DB_OPTION = typer.Option(
+    None,
+    "--database-url",
+    help="postgresql://... or a SQLite path (default: $TIRKIT_DATABASE_URL, then $TIRKIT_DB_PATH).",
+)
+OPS_MEDIA_OPTION = typer.Option(None, help="Media directory (default: $TIRKIT_MEDIA_DIR).")
+
+
+@app.command()
+def backup(
+    out: Path = typer.Argument(..., help="New or empty directory to write the backup into."),
+    database_url: str | None = OPS_DB_OPTION,
+    media_dir: Path | None = OPS_MEDIA_OPTION,
+    no_media: bool = typer.Option(False, "--no-media", help="Back up the database only."),
+    sample: int = typer.Option(100, help="Rows per table hashed into the manifest."),
+) -> None:
+    """Back up the database and media files. Safe while the server is running.
+
+    SQLite uses the online backup API; Postgres uses ``pg_dump`` (custom format) inside an
+    exported snapshot. Media files are copied and listed by SHA-256 in ``manifest.json``.
+    """
+    from tirkit.store.backup import BackupError
+    from tirkit.store.backup import backup as run_backup
+
+    url = _ops_database_url(database_url)
+    media = _ops_media_dir(media_dir, no_media)
+    try:
+        manifest = run_backup(url, out, media_dir=media, sample=sample)
+    except BackupError as exc:
+        typer.echo(f"backup failed: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    tables = manifest["tables"]
+    spans = tables.get("spans", {}).get("rows", 0)
+    traces = tables.get("traces", {}).get("rows", 0)
+    typer.echo(
+        f"backup written to {out} ({manifest['dialect']}, schema v{manifest['schema_version']}): "
+        f"{spans} spans, {traces} traces, {len(tables)} tables, {manifest['db_bytes']} bytes "
+        f"in {manifest['duration_s']} s"
+    )
+    m = manifest["media"]
+    if m is None:
+        typer.echo("media: not included")
+    else:
+        typer.echo(f"media: {len(m['files'])} files, {m['bytes']} bytes")
+        if m["missing"]:
+            typer.echo(f"warning: {len(m['missing'])} media rows have no file", err=True)
+        if m["corrupt"]:
+            typer.echo(
+                f"warning: {len(m['corrupt'])} media files fail their hash and were skipped",
+                err=True,
+            )
+
+
+@app.command()
+def restore(
+    backup_dir: Path = typer.Argument(..., help="A directory written by `tirkit backup`."),
+    database_url: str | None = OPS_DB_OPTION,
+    media_dir: Path | None = OPS_MEDIA_OPTION,
+    no_media: bool = typer.Option(False, "--no-media", help="Restore the database only."),
+    force: bool = typer.Option(False, help="Replace a target database that already has data."),
+) -> None:
+    """Restore a backup, then check every table against the manifest. Stop the server first."""
+    from tirkit.store.backup import BackupError
+    from tirkit.store.backup import restore as run_restore
+
+    url = _ops_database_url(database_url)
+    media = _ops_media_dir(media_dir, no_media)
+    try:
+        report = run_restore(backup_dir, url, media_dir=media, force=force)
+    except BackupError as exc:
+        typer.echo(f"restore failed: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(
+        f"restored and verified: {report['rows']} rows in {report['tables']} tables "
+        f"({report['dialect']}); media: {report['media_restored']} copied, "
+        f"{report['media_present']} already present"
+    )
+
+
 if __name__ == "__main__":
     app()
