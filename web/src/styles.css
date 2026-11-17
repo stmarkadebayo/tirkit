@@ -191,3 +191,14 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .split { grid-template-columns: 1fr; }
   .main { padding: 16px; }
 }
+
+/* Settings: redaction mode */
+.mode-group { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin: 0; min-width: 0; }
+.mode-group legend { font-weight: 600; padding: 0 6px; }
+.mode-options { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.mode-option { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+.mode-option:hover { background: var(--panel-2); }
+.mode-option.on { border-color: var(--accent); background: var(--accent-soft); }
+.mode-option input { margin-top: 3px; }
+.mode-option:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.block { display: block; }
