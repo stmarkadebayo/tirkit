@@ -1,0 +1,202 @@
+{
+ "How many days do I have to return an item?": {
+  "brief": "You have 30 days from delivery to return an item.",
+  "detailed": "You have 30 days from the date of delivery to return an item to Acme. To qualify for a refund, the product must be unused and kept in its original packaging. Once the return is processed, the refund will be issued back to your original payment method within 5 business days."
+ },
+ "Can I return an item I have already used?": {
+  "brief": "No, items must be unused to be eligible for a return.",
+  "detailed": "No, you cannot return an item that has been used because Acme's return policy strictly requires items to be unused and in their original packaging. Returns are only accepted within 30 days of delivery under these specific conditions. If the item does not meet these requirements, it will not be eligible for a refund to your original payment method."
+ },
+ "Does a return need the original packaging?": {
+  "brief": "Yes, items must be in the original packaging for returns.",
+  "detailed": "Yes, according to Acme's return policy, items must be in their original packaging to be eligible for a return within 30 days of delivery. This requirement ensures that unused products are processed correctly for a refund back to your original payment method. If the original packaging is missing, the return may not meet the necessary conditions for acceptance."
+ },
+ "Where does my refund go?": {
+  "brief": "Refunds go back to the original payment method within 5 business days.",
+  "detailed": "Your refund will be processed back to the original payment method used for your purchase. This transaction is completed within 5 business days after Acme accepts your return, provided the item is unused and in its original packaging within 30 days of delivery. Please note that phone support is specifically reserved for handling warranty claims rather than general inquiries about refunds."
+ },
+ "How long does a refund take after a return is accepted?": {
+  "brief": "Refunds go back to the original payment method within 5 business days.",
+  "detailed": "Refunds are processed back to the original payment method within 5 business days after a return is accepted. To qualify for this refund, items must be returned unused and in their original packaging within 30 days of delivery. Please note that phone support is specifically reserved for handling warranty claims rather than general inquiries about the return process."
+ },
+ "Can I get a refund as store credit instead of my card?": {
+  "brief": "No, refunds go back to the original payment method within 5 business days.",
+  "detailed": "Based on the provided context, Acme refunds are processed back to the original payment method within 5 business days. The policy requires items to be unused and in their original packaging for returns accepted within 30 days of delivery. There is no mention of an option to receive store credit instead of a refund to your card."
+ },
+ "Is a return possible 45 days after delivery?": {
+  "brief": "No, returns are only accepted within 30 days of delivery.",
+  "detailed": "No, a return is not possible 45 days after delivery because Acme only accepts returns within 30 days of the delivery date. Additionally, to qualify for a refund, items must be unused and kept in their original packaging, with the money returned to the original payment method within 5 business days if the request is approved. Since the 45-day timeframe exceeds the 30-day limit specified in the policy, the return would not be accepted regardless of the item's condition."
+ },
+ "How long does standard shipping take?": {
+  "brief": "Standard shipping takes 3 to 5 business days.",
+  "detailed": "According to the provided context, standard shipping takes 3 to 5 business days. This service is free for orders over $50, while other orders may incur additional costs depending on the specific terms not fully detailed here. If you require faster delivery, express shipping is available as an alternative option."
+ },
+ "How long does express shipping take?": {
+  "brief": "Express shipping takes 1 to 2 business days.",
+  "detailed": "Express shipping takes 1 to 2 business days. This service costs an additional $12, unless your order is over $50, in which case standard shipping is free but express rates still apply. Please note that standard shipping typically takes 3 to 5 business days if you do not choose the express option."
+ },
+ "How much does express shipping cost?": {
+  "brief": "Express shipping costs 12 dollars.",
+  "detailed": "Express shipping costs $12. This option allows your order to arrive in 1 to 2 business days, which is faster than the standard 3 to 5 business day delivery. Please note that orders over $50 qualify for free standard shipping, but this discount does not apply to express shipping fees."
+ },
+ "Which orders get free shipping?": {
+  "brief": "Orders over $50 get free shipping with standard shipping.",
+  "detailed": "According to the shipping policy, orders totaling over $50 receive free standard shipping. Standard shipping itself takes 3 to 5 business days, while express shipping is an additional cost of $12 regardless of order value. There are no other conditions mentioned for obtaining free shipping beyond the minimum purchase amount."
+ },
+ "Is express shipping free for orders over 50 dollars?": {
+  "brief": "No, express shipping costs $12 regardless of the order amount; only standard shipping is free for orders over $50.",
+  "detailed": "No, express shipping is not free; it costs $12 regardless of the order total. While orders over $50 qualify for free standard shipping, express shipping remains a paid option that takes only 1 to 2 business days. Standard shipping, which is free for qualifying orders, takes 3 to 5 business days instead."
+ },
+ "My order is 40 dollars. Do I pay for standard shipping?": {
+  "brief": "Yes, you must pay for standard shipping because your order is under $50.",
+  "detailed": "Yes, you will need to pay for standard shipping because your order is $40, which is below the $50 threshold required for free shipping. According to the policy, only orders over $50 qualify for free standard shipping; otherwise, the cost applies to all other orders. You can expect this standard shipping to take 3 to 5 business days once processed."
+ },
+ "What is the fastest shipping option?": {
+  "brief": "The fastest shipping option is Express shipping, which takes 1 to 2 business days.",
+  "detailed": "The fastest shipping option available is Express shipping, which takes only 1 to 2 business days. This service costs an additional $12 unless your order exceeds $50, in which case you qualify for free standard shipping instead. Please note that standard shipping generally takes 3 to 5 business days and is free for orders over $50."
+ },
+ "Can my 60 dollar order ship free?": {
+  "brief": "Yes, your 60 dollar order qualifies for free standard shipping since orders over 50 dollars ship free with standard shipping.",
+  "detailed": "Yes, your $60 order qualifies for free standard shipping because Acme offers free standard delivery on all orders over $50. Standard shipping typically takes 3 to 5 business days under this policy. If you prefer faster delivery, you can still choose express shipping for an additional $12 fee."
+ },
+ "How long is the robot vacuum warranty?": {
+  "brief": "The robot vacuum has a 2 year limited warranty covering motor and battery defects.",
+  "detailed": "Every Acme robot vacuum comes with a 2-year limited warranty that specifically covers defects in the motor and battery. Please note that this warranty does not cover accidental damage. For any issues related to these covered defects, you can contact phone support, which is reserved exclusively for warranty claims."
+ },
+ "Does the warranty cover motor defects?": {
+  "brief": "Yes, the warranty covers motor defects.",
+  "detailed": "Yes, every Acme robot vacuum comes with a 2-year limited warranty that specifically covers motor defects. However, this coverage is restricted to defects in the motor and battery, while accidental damage is explicitly not covered. To make a claim for a motor defect, you would need to contact phone support, as it is reserved exclusively for warranty issues."
+ },
+ "Does the warranty cover battery defects?": {
+  "brief": "Yes, the warranty covers battery defects.",
+  "detailed": "Yes, the warranty covers battery defects because every Acme robot vacuum has a 2-year limited warranty that specifically includes coverage for motor and battery defects. However, this coverage is limited to manufacturing issues and does not extend to accidental damage. If you need a replacement battery due to a defect, it would be covered under this warranty rather than requiring the purchase of a $39 replacement unit."
+ },
+ "Is accidental damage covered by the warranty?": {
+  "brief": "No, accidental damage is not covered by the warranty.",
+  "detailed": "No, accidental damage is not covered by the warranty. According to Acme's policy, every robot vacuum comes with a 2-year limited warranty that specifically covers motor and battery defects only. The warranty explicitly excludes any claims related to accidental damage."
+ },
+ "I dropped my vacuum down the stairs. Is that covered?": {
+  "brief": "No, accidental damage is not covered by the warranty.",
+  "detailed": "No, your vacuum is not covered for this incident because the warranty explicitly states that accidental damage is not included in coverage. The 2-year limited warranty only protects against motor and battery defects. Since dropping the vacuum constitutes accidental damage, you would need to purchase a replacement battery or seek other repair options outside of the standard warranty terms."
+ },
+ "What kind of warranty does the vacuum have?": {
+  "brief": "The vacuum has a 2 year limited warranty covering motor and battery defects.",
+  "detailed": "Every Acme robot vacuum comes with a 2-year limited warranty that specifically covers defects in the motor and battery. This coverage does not extend to accidental damage, which is explicitly excluded from the policy. For any issues related to these covered components, you can contact phone support as it is reserved for warranty claims."
+ },
+ "How long does the V2 battery last on one charge?": {
+  "brief": "The V2 battery lasts about 90 minutes per charge.",
+  "detailed": "The Acme V2 battery lasts about 90 minutes per charge. This duration applies to every charge cycle, after which the battery fully recharges in approximately 3 hours. If you need a replacement, they are available for purchase at a cost of 39 dollars."
+ },
+ "How long does the V2 battery take to fully recharge?": {
+  "brief": "The V2 battery takes 3 hours to fully recharge.",
+  "detailed": "According to the provided information, the Acme V2 battery takes about 3 hours to fully recharge after a single use. This duration applies regardless of whether you are using the standard or express shipping options for your order. If you need a replacement battery later, it is available for purchase at a cost of $39."
+ },
+ "How much is a replacement battery?": {
+  "brief": "A replacement battery costs 39 dollars.",
+  "detailed": "A replacement battery for the Acme V2 costs $39. This price applies to purchasing a new battery to replace the original one, which typically lasts about 90 minutes per charge and recharges in 3 hours. Please note that while standard shipping is free for orders over $50, express shipping would add an additional $12 if you choose that option."
+ },
+ "Can the V2 clean for two hours on one charge?": {
+  "brief": "No, the V2 battery lasts about 90 minutes per charge.",
+  "detailed": "No, the V2 cannot clean for two hours on a single charge because its battery lasts about 90 minutes per charge. The product specifications state that the battery fully recharges in 3 hours if needed after use. Additionally, you can monitor the remaining battery level directly through the Acme Home app."
+ },
+ "Is a 3 hour charge enough to fill the battery?": {
+  "brief": "Yes, the battery fully recharges in 3 hours.",
+  "detailed": "Yes, a 3-hour charge is sufficient to fully recharge the Acme V2 battery, as it takes exactly that amount of time to reach full capacity. Once fully charged, the battery provides approximately 90 minutes of operation per use. This charging duration applies regardless of whether you are using the standard shipping timeframe or have opted for express delivery."
+ },
+ "What are the chat support hours?": {
+  "brief": "Chat support is available from 8am to 8pm Eastern time, Monday to Saturday.",
+  "detailed": "Chat support is available from 8 am to 8 pm Eastern time, Monday through Saturday. This service allows you to schedule cleanings, set no-go zones, and check battery levels via the Acme Home app. Please note that phone support is reserved specifically for warranty claims rather than general inquiries."
+ },
+ "Is chat support available on Sunday?": {
+  "brief": "No, chat support is only available Monday to Saturday.",
+  "detailed": "No, chat support is not available on Sunday because it is only offered from Monday to Saturday between 8 am and 8 pm Eastern time. Phone support is reserved specifically for warranty claims rather than general inquiries. If you need assistance outside of these hours or on Sundays, you would not have access to the standard chat service."
+ },
+ "Can I reach support by chat at 9pm Eastern?": {
+  "brief": "No, chat support is only available until 8pm Eastern time.",
+  "detailed": "No, you cannot reach support by chat at 9pm Eastern because the chat service is only available from 8am to 8pm Eastern time, Monday through Saturday. Phone support is reserved specifically for warranty claims and does not have the same extended hours. Additionally, if your issue involves a warranty claim outside of chat hours, you would need to wait until the next business day or contact them via phone during their operational times."
+ },
+ "What is phone support used for?": {
+  "brief": "Phone support is reserved for warranty claims.",
+  "detailed": "According to the provided context, phone support is specifically reserved for handling warranty claims. While general customer support is available via chat from 8am to 8pm Eastern time on weekdays and Saturdays, you must use the phone line if your issue relates to a warranty matter. This distinction ensures that non-warranty inquiries are directed toward the chat service instead."
+ },
+ "Can I call support about a shipping question?": {
+  "brief": "No, phone support is reserved for warranty claims; you should use chat for other questions.",
+  "detailed": "No, you cannot call support for general questions like shipping inquiries because phone support is reserved exclusively for warranty claims. According to the policy, chat support is available from 8am to 8pm Eastern time, Monday through Saturday, which would be the appropriate channel for your question. If you are calling specifically regarding a warranty claim related to shipping damage, that would be an exception where phone support is permitted."
+ },
+ "Which time zone are support hours in?": {
+  "brief": "Support hours are in Eastern time.",
+  "detailed": "Support hours are listed as being from 8am to 8pm Eastern time, Monday through Saturday. This schedule applies specifically to chat support availability. Phone support is reserved exclusively for warranty claims and does not have a separate stated time window in the provided information."
+ },
+ "What can I do in the Acme Home app?": {
+  "brief": "You can schedule cleanings, set no-go zones, and check battery level in the Acme Home app.",
+  "detailed": "The Acme Home app allows you to schedule cleanings, set no-go zones, and check the battery level of your robot vacuum. This application is compatible with iOS 16 and Android 12 or newer devices. Please note that while the app handles daily scheduling and monitoring, phone support for warranty claims is a separate service reserved specifically for those issues."
+ },
+ "Can I schedule cleanings from the app?": {
+  "brief": "Yes, the Acme Home app lets you schedule cleanings.",
+  "detailed": "Yes, you can schedule cleanings using the Acme Home app, which also allows you to set no-go zones and check battery levels. The app is compatible with iOS 16 and Android 12 or newer devices. Please note that phone support for any issues is reserved specifically for warranty claims, while general assistance like app usage questions can be handled via chat from 8am to 8pm Eastern time, Monday to Saturday."
+ },
+ "Can I set no-go zones?": {
+  "brief": "Yes, the Acme Home app lets you set no-go zones.",
+  "detailed": "Yes, you can set no-go zones using the Acme Home app, which allows you to customize cleaning schedules and restrictions. This feature is available on iOS 16 and Android 12 or newer devices. Please note that while the app supports this functionality, phone support for assistance with these settings is reserved specifically for warranty claims."
+ },
+ "Can I check battery level in the app?": {
+  "brief": "Yes, the Acme Home app lets you check the battery level.",
+  "detailed": "Yes, you can check the battery level using the Acme Home app, which is designed to let you monitor your device's status along with scheduling cleanings and setting no-go zones. The app is compatible with iOS 16 and Android 12 or newer devices. Please note that phone support for this feature is not available, as phone lines are reserved specifically for warranty claims."
+ },
+ "Does the app work on iOS 15?": {
+  "brief": "No, the app requires iOS 16 or newer.",
+  "detailed": "No, the Acme Home app does not work on iOS 15 because it requires iOS 16 or newer to function properly. The app is designed to let you schedule cleanings, set no-go zones, and check battery levels, but these features are only available on supported operating systems. You should ensure your device meets the minimum version requirement before attempting to install or use the application."
+ },
+ "Does the app work on Android 12?": {
+  "brief": "Yes, the app works on Android 12 or newer.",
+  "detailed": "Yes, the Acme Home app is compatible with Android 12 or newer devices. This application allows you to schedule cleanings, set no-go zones, and check battery levels. It also supports iOS 16 for users with Apple devices."
+ },
+ "Does the app work on Android 11?": {
+  "brief": "No, the app requires Android 12 or newer.",
+  "detailed": "No, the Acme Home app does not work on Android 11 because it requires Android 12 or newer to function properly. The app is designed to let you schedule cleanings, set no-go zones, and check battery levels, but these features are only available on supported operating systems. You should ensure your device meets the minimum requirement of Android 12 before attempting to install or use the application."
+ },
+ "What is the minimum iOS version for the app?": {
+  "brief": "The minimum iOS version for the app is iOS 16.",
+  "detailed": "According to the provided context, the Acme Home app requires iOS 16 or newer to function properly. This version requirement applies specifically when using the app on Apple devices to access features like scheduling cleanings and checking battery levels. No other operating system versions are mentioned for iOS compatibility in the text."
+ },
+ "Is a replacement battery more expensive than express shipping?": {
+  "brief": "Yes, a replacement battery costs $39 while express shipping costs $12.",
+  "detailed": "Yes, a replacement battery is more expensive than express shipping because the replacement battery costs $39 while express shipping costs $12. According to the policy, you can purchase a new battery if your current one needs replacing, as the original warranty only covers motor and battery defects, not accidental damage. Therefore, the cost difference between these two specific items is significant, with the battery being more than three times the price of the faster shipping option."
+ },
+ "If I order a 39 dollar battery with standard shipping, is shipping free?": {
+  "brief": "No, because the $39 battery does not meet the $50 minimum order value required for free standard shipping.",
+  "detailed": "No, shipping is not free for your order because the total cost of $39 does not meet the requirement of being over $50 to qualify for free standard shipping. According to the policy, only orders exceeding $50 receive free standard shipping; otherwise, you would need to pay the standard shipping rate or upgrade to express shipping for an additional fee. Since your battery alone is under the $50 threshold, a shipping charge will apply unless you add more items to your cart to reach the minimum order value."
+ },
+ "I bought the vacuum 18 months ago and the motor failed. Is it covered?": {
+  "brief": "Yes, your motor failure is covered because the 2-year limited warranty covers motor defects.",
+  "detailed": "Yes, your motor failure is covered because every Acme robot vacuum includes a 2-year limited warranty that specifically covers motor defects. Since you purchased the unit 18 months ago, you are still within this coverage period. However, please note that accidental damage is not included in the warranty, so the claim will only be approved if the issue is strictly related to a defect."
+ },
+ "My vacuum is 3 years old and the battery is failing. Is it under warranty?": {
+  "brief": "No, your vacuum is not under warranty because the coverage is limited to 2 years.",
+  "detailed": "No, your vacuum is not covered by the warranty because Acme provides a 2-year limited warranty that specifically covers motor and battery defects. Since your unit is 3 years old, it has exceeded this coverage period. Additionally, please note that accidental damage is explicitly excluded from the warranty terms regardless of age."
+ },
+ "Which support channel handles warranty claims?": {
+  "brief": "Phone support is reserved for warranty claims.",
+  "detailed": "According to the provided context, phone support is the specific channel reserved for handling warranty claims. While general customer support is available via chat from 8am to 8pm Eastern time on weekdays and Saturdays, this method does not cover warranty issues. Therefore, if you need assistance with a claim under your 2-year limited warranty, you must contact Acme by phone."
+ },
+ "How do I claim a refund for an unused item within a week of delivery?": {
+  "brief": "Refunds go back to the original payment method within 5 business days.",
+  "detailed": "To claim a refund for an unused item within a week of delivery, you must ensure the product is in its original packaging as required by Acme's return policy. Once you initiate the return, the refund will be processed back to your original payment method within 5 business days. Please note that phone support is specifically reserved for warranty claims, so you should follow the standard return procedure rather than calling for a general refund request."
+ },
+ "How long would express shipping plus a refund take in total for a returned item?": {
+  "brief": "It would take between 4 to 7 business days, as express shipping takes 1 to 2 days and refunds are processed within 5 business days.",
+  "detailed": "Express shipping takes 1 to 2 business days, but this service is only available for new orders and cannot be used for returning an item. Acme accepts returns within 30 days of delivery, provided the item is unused and in its original packaging, with refunds processed back to the original payment method within 5 business days after approval. Therefore, there is no combined timeframe for \"express shipping plus a refund\" because express shipping does not apply to the return process itself."
+ },
+ "Does Acme offer support on Saturday?": {
+  "brief": "Yes, support is available by chat from 8am to 8pm Eastern time on Saturday.",
+  "detailed": "Yes, Acme offers support on Saturday through their chat service, which is available from 8 am to 8 pm Eastern time. However, phone support is specifically reserved for warranty claims and does not have a listed schedule in the provided context. Therefore, while you can reach out via chat on Saturdays, you should use that method rather than calling if your inquiry is not related to a warranty claim."
+ },
+ "Can I set a cleaning schedule on an Android 10 phone?": {
+  "brief": "No, the Acme Home app requires Android 12 or newer to set cleaning schedules.",
+  "detailed": "No, you cannot set a cleaning schedule on an Android 10 phone because the Acme Home app requires Android 12 or newer to function. The app is necessary for scheduling cleanings and setting no-go zones, but it is incompatible with older operating systems like Android 10. You would need to upgrade your phone's software to at least Android 12 to use this feature."
+ },
+ "What does the V2 battery cost to replace and how long does it last?": {
+  "brief": "The replacement battery costs $39 and lasts about 90 minutes per charge.",
+  "detailed": "The Acme V2 replacement battery costs $39, while the original battery lasts about 90 minutes per charge. If you need a new one, please note that the standard warranty covers motor and battery defects but does not cover accidental damage or wear from normal use. You can check your battery level using the Acme Home app, which is compatible with iOS 16 and Android 12 or newer."
+ }
+}

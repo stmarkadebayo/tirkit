@@ -1,0 +1,24 @@
+v0 e3c5e4ca flip rate 0.6521739130434783 decided 46
+v1 0128891a flip rate 0.3181818181818182 decided 44
+{
+ "v0": {
+  "rubric": "correctness@e3c5e4ca",
+  "flip_rate": 0.6521739130434783,
+  "n_pairs": 50,
+  "n_pairs_decided": 46,
+  "n_ties_or_failures": 4,
+  "first_shown_win_share": 0.1956521739130435,
+  "detailed_win_share_when_consistent": 0.1875,
+  "judge_seconds": 391.3
+ },
+ "v1": {
+  "rubric": "correctness@0128891a",
+  "flip_rate": 0.3181818181818182,
+  "n_pairs": 50,
+  "n_pairs_decided": 44,
+  "n_ties_or_failures": 6,
+  "first_shown_win_share": 0.3409090909090909,
+  "detailed_win_share_when_consistent": 0.06666666666666667,
+  "judge_seconds": 795.1
+ }
+}

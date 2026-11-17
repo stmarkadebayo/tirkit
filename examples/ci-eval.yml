@@ -1,0 +1,46 @@
+# Copy into another repo's .github/workflows/ to gate merges on Tirkit evals.
+#
+# Setup in that repo:
+#   1. Put a dataset at evals/regression.jsonl (one {"input": {...}, "expected": ...} per line),
+#      e.g. exported from traces with `tirkit dataset export support-faq --out evals/regression.jsonl`.
+#   2. Make the code under test callable as module:function taking the input dict.
+#   3. On main, record the baseline once and commit it:
+#        tirkit run evals/regression.jsonl app.llm:answer -s exact_match_norm -s judge:correctness \
+#          --out evals/baseline.json
+#   4. Add LLM_API_KEY (and LLM_BASE_URL / JUDGE_MODEL if not OpenAI) as repository secrets.
+# The gate fails the check only when the candidate is confidently worse than the baseline.
+name: evals
+on: [pull_request]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "tirkit @ git+https://github.com/stmarkadebayo/tirkit" -r requirements.txt
+      - name: Run the candidate
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          JUDGE_MODEL: ${{ secrets.JUDGE_MODEL }}
+          JUDGE_BUDGET_USD: "2"
+        run: |
+          tirkit run evals/regression.jsonl app.llm:answer \
+            -s exact_match_norm -s judge:correctness --out candidate.json --db evals.db
+      - name: Gate
+        id: gate
+        run: |
+          tirkit gate evals/baseline.json candidate.json -s judge:correctness \
+            --max-drop 0.05 --report gate.md --db evals.db
+      - name: Comment on the pull request
+        if: always() && steps.gate.outcome != 'skipped'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment ${{ github.event.pull_request.number }} --body-file gate.md --edit-last || gh pr comment ${{ github.event.pull_request.number }} --body-file gate.md

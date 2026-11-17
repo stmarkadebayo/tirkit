@@ -1,0 +1,835 @@
+{
+ "dataset": "evals/acme_qa.jsonl@3d4e6cce333b",
+ "n_questions": 50,
+ "answer_model": "qwen/qwen3.5-9b",
+ "judge_model": "qwen/qwen3.5-9b",
+ "endpoint": "LM Studio (local)",
+ "machine": "arm64 Darwin",
+ "generation_seconds": 222.8,
+ "rubrics": {
+  "v0": {
+   "rubric": "correctness@e3c5e4ca",
+   "flip_rate": 0.6521739130434783,
+   "n_pairs": 50,
+   "n_pairs_decided": 46,
+   "n_ties_or_failures": 4,
+   "first_shown_win_share": 0.1956521739130435,
+   "detailed_win_share_when_consistent": 0.1875,
+   "judge_seconds": 391.3,
+   "pairs": [
+    {
+     "question": "How many days do I have to return an item?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Can I return an item I have already used?",
+     "first": "b",
+     "second": "b",
+     "flipped": false,
+     "verdict": "b",
+     "error": null
+    },
+    {
+     "question": "Does a return need the original packaging?",
+     "first": "b",
+     "second": "tie",
+     "flipped": false,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Where does my refund go?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "How long does a refund take after a return is accepted?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Can I get a refund as store credit instead of my card?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Is a return possible 45 days after delivery?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How long does standard shipping take?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How long does express shipping take?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How much does express shipping cost?",
+     "first": "b",
+     "second": "b",
+     "flipped": false,
+     "verdict": "b",
+     "error": null
+    },
+    {
+     "question": "Which orders get free shipping?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Is express shipping free for orders over 50 dollars?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "My order is 40 dollars. Do I pay for standard shipping?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "What is the fastest shipping option?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Can my 60 dollar order ship free?",
+     "first": "b",
+     "second": "tie",
+     "flipped": false,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How long is the robot vacuum warranty?",
+     "first": "b",
+     "second": "tie",
+     "flipped": false,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Does the warranty cover motor defects?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Does the warranty cover battery defects?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Is accidental damage covered by the warranty?",
+     "first": "b",
+     "second": "tie",
+     "flipped": false,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "I dropped my vacuum down the stairs. Is that covered?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "What kind of warranty does the vacuum have?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How long does the V2 battery last on one charge?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How long does the V2 battery take to fully recharge?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "How much is a replacement battery?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Can the V2 clean for two hours on one charge?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Is a 3 hour charge enough to fill the battery?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "What are the chat support hours?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Is chat support available on Sunday?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Can I reach support by chat at 9pm Eastern?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "What is phone support used for?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Can I call support about a shipping question?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Which time zone are support hours in?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "What can I do in the Acme Home app?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Can I schedule cleanings from the app?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Can I set no-go zones?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Can I check battery level in the app?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Does the app work on iOS 15?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Does the app work on Android 12?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Does the app work on Android 11?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "What is the minimum iOS version for the app?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Is a replacement battery more expensive than express shipping?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "If I order a 39 dollar battery with standard shipping, is shipping free?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "I bought the vacuum 18 months ago and the motor failed. Is it covered?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "My vacuum is 3 years old and the battery is failing. Is it under warranty?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Which support channel handles warranty claims?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How do I claim a refund for an unused item within a week of delivery?",
+     "first": "b",
+     "second": "b",
+     "flipped": false,
+     "verdict": "b",
+     "error": null
+    },
+    {
+     "question": "How long would express shipping plus a refund take in total for a returned item?",
+     "first": "a",
+     "second": "b",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Does Acme offer support on Saturday?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Can I set a cleaning schedule on an Android 10 phone?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "What does the V2 battery cost to replace and how long does it last?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    }
+   ]
+  },
+  "v1": {
+   "rubric": "correctness@0128891a",
+   "flip_rate": 0.3181818181818182,
+   "n_pairs": 50,
+   "n_pairs_decided": 44,
+   "n_ties_or_failures": 6,
+   "first_shown_win_share": 0.3409090909090909,
+   "detailed_win_share_when_consistent": 0.06666666666666667,
+   "judge_seconds": 795.1,
+   "pairs": [
+    {
+     "question": "How many days do I have to return an item?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Can I return an item I have already used?",
+     "first": "b",
+     "second": "b",
+     "flipped": false,
+     "verdict": "b",
+     "error": null
+    },
+    {
+     "question": "Does a return need the original packaging?",
+     "first": "a",
+     "second": "tie",
+     "flipped": false,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Where does my refund go?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "How long does a refund take after a return is accepted?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Can I get a refund as store credit instead of my card?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Is a return possible 45 days after delivery?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "How long does standard shipping take?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "How long does express shipping take?",
+     "first": "a",
+     "second": "tie",
+     "flipped": false,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How much does express shipping cost?",
+     "first": "b",
+     "second": "tie",
+     "flipped": false,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Which orders get free shipping?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Is express shipping free for orders over 50 dollars?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "My order is 40 dollars. Do I pay for standard shipping?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "What is the fastest shipping option?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Can my 60 dollar order ship free?",
+     "first": "a",
+     "second": "tie",
+     "flipped": false,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How long is the robot vacuum warranty?",
+     "first": "a",
+     "second": "tie",
+     "flipped": false,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Does the warranty cover motor defects?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Does the warranty cover battery defects?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Is accidental damage covered by the warranty?",
+     "first": "a",
+     "second": "tie",
+     "flipped": false,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "I dropped my vacuum down the stairs. Is that covered?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "What kind of warranty does the vacuum have?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How long does the V2 battery last on one charge?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How long does the V2 battery take to fully recharge?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "How much is a replacement battery?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Can the V2 clean for two hours on one charge?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Is a 3 hour charge enough to fill the battery?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "What are the chat support hours?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Is chat support available on Sunday?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Can I reach support by chat at 9pm Eastern?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "What is phone support used for?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Can I call support about a shipping question?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Which time zone are support hours in?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "What can I do in the Acme Home app?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Can I schedule cleanings from the app?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Can I set no-go zones?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Can I check battery level in the app?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Does the app work on iOS 15?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Does the app work on Android 12?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Does the app work on Android 11?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "What is the minimum iOS version for the app?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Is a replacement battery more expensive than express shipping?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "If I order a 39 dollar battery with standard shipping, is shipping free?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "I bought the vacuum 18 months ago and the motor failed. Is it covered?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "My vacuum is 3 years old and the battery is failing. Is it under warranty?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "Which support channel handles warranty claims?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How do I claim a refund for an unused item within a week of delivery?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "How long would express shipping plus a refund take in total for a returned item?",
+     "first": "b",
+     "second": "b",
+     "flipped": false,
+     "verdict": "b",
+     "error": null
+    },
+    {
+     "question": "Does Acme offer support on Saturday?",
+     "first": "b",
+     "second": "a",
+     "flipped": true,
+     "verdict": "tie",
+     "error": null
+    },
+    {
+     "question": "Can I set a cleaning schedule on an Android 10 phone?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    },
+    {
+     "question": "What does the V2 battery cost to replace and how long does it last?",
+     "first": "a",
+     "second": "a",
+     "flipped": false,
+     "verdict": "a",
+     "error": null
+    }
+   ]
+  }
+ }
+}
