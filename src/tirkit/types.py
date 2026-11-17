@@ -79,6 +79,11 @@ class Span:
     def set_attributes(self, **attrs: Any) -> None:
         self.attributes.update(attrs)
 
+    def mark_first_token(self, at: float | None = None) -> None:
+        """Record time to first token (or first audio byte) once, for streamed output."""
+        if self.ttft_ms is None:
+            self.ttft_ms = ((at if at is not None else time.time()) - self.start) * 1000
+
     def record_error(self, exc: BaseException | str) -> None:
         self.status = "error"
         self.level = "error"
