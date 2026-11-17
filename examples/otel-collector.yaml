@@ -1,0 +1,42 @@
+# OpenTelemetry Collector: receive OTLP from your apps and forward traces to Tirkit.
+#
+#   export TIRKIT_BASIC_AUTH=$(printf '%s:%s' "$TIRKIT_PUBLIC_KEY" "$TIRKIT_SECRET_KEY" | base64)
+#   otelcol --config examples/otel-collector.yaml
+#
+# Point your apps at the Collector (grpc 4317 or http 4318). The otlphttp exporter adds /v1/traces.
+# To use Tirkit's optional gRPC receiver instead, see the commented "otlp/tirkit" exporter.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+  # Optional: keep only GenAI spans (spans with a gen_ai.* or openinference attribute).
+  # filter/genai:
+  #   error_mode: ignore
+  #   traces:
+  #     span:
+  #       - 'attributes["gen_ai.operation.name"] == nil and attributes["openinference.span.kind"] == nil'
+
+exporters:
+  otlphttp/tirkit:
+    endpoint: http://tirkit:8000
+    headers:
+      Authorization: "Basic ${env:TIRKIT_BASIC_AUTH}"
+  # otlp/tirkit:                       # needs `tirkit serve --otlp-grpc-port 4317`
+  #   endpoint: tirkit:4317
+  #   tls:
+  #     insecure: true                 # the gRPC receiver is plain; use a TLS proxy off-box
+  #   headers:
+  #     authorization: "Basic ${env:TIRKIT_BASIC_AUTH}"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/tirkit]

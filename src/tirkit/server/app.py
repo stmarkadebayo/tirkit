@@ -44,14 +44,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         accounts.create_project("Default", admin.user_id)
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> Any:
+    async def lifespan(app_: FastAPI) -> Any:
         worker = None
         if settings.embedded_worker:
             from tirkit.jobs import Worker
 
             worker = Worker(store)
             worker.start_thread()
+        grpc_server = None
+        if settings.otlp_grpc_port is not None:
+            from tirkit.server.otlp_grpc import start_grpc_receiver
+
+            grpc_server, bound = start_grpc_receiver(
+                app_, settings.otlp_grpc_port, settings.otlp_grpc_host
+            )
+            app_.state.otlp_grpc_port = bound
         yield
+        if grpc_server is not None:
+            grpc_server.stop(2).wait(5)
         if worker is not None:
             worker.stop()
 

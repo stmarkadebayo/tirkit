@@ -32,6 +32,8 @@ server = [
     "argon2-cffi>=23",
     "opentelemetry-proto>=1.27",
 ]
+# Optional OTLP/gRPC receiver (tirkit serve --otlp-grpc-port 4317).
+otlp-grpc = ["tirkit[server]", "grpcio>=1.60"]
 docs = ["mkdocs-material>=9.5"]
 dev = [
     "tirkit[server]",
@@ -49,6 +51,13 @@ dev = [
     "numpy>=1.26",
     "opentelemetry-sdk>=1.27",
     "opentelemetry-exporter-otlp-proto-http>=1.27",
+    # OTLP parity tests: gRPC receiver and exporter, and the common GenAI instrumentations.
+    "tirkit[otlp-grpc]",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.27",
+    "openinference-instrumentation-openai>=0.1.30",
+    "opentelemetry-instrumentation-openai>=0.40",
+    "opentelemetry-instrumentation-openai-v2>=2.0b0,<2.4",
+    "wrapt<2",  # the OpenTelemetry OpenAI instrumentation breaks on wrapt 2
 ]
 
 

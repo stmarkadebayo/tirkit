@@ -1,0 +1,12 @@
+{
+  "name": "tirkit-otel-node-test",
+  "private": true,
+  "description": "Sends spans to Tirkit with the real OpenTelemetry Node OTLP/HTTP exporter (used by tests/test_otel_parity.py).",
+  "type": "module",
+  "dependencies": {
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/exporter-trace-otlp-proto": "0.223.2",
+    "@opentelemetry/resources": "2.12.1",
+    "@opentelemetry/sdk-trace-base": "2.12.1"
+  }
+}
