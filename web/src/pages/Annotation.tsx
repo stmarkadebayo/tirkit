@@ -1,26 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, projectPath, type Json, type Span, type Trace } from "../api";
+import { api, projectPath, type Json, type NextItem as NextResponse, type Queue, type ScoreConfig as Config } from "../api";
 import { usePid, useRole } from "../hooks";
 import { Content } from "../components/Content";
-
-interface Config {
-  name: string;
-  data_type: "numeric" | "categorical" | "boolean";
-  min_value: number | null;
-  max_value: number | null;
-  categories: string[] | null;
-  description: string | null;
-}
-interface Queue {
-  queue_id: string;
-  name: string;
-  description: string | null;
-  score_names: string[];
-  n_items: number;
-  n_done: number;
-}
 
 export function Annotation() {
   const pid = usePid();
@@ -176,14 +159,6 @@ export function Annotation() {
       </div>
     </div>
   );
-}
-
-interface NextResponse {
-  queue: Queue;
-  configs: Config[];
-  item: { item_id: string; trace_id: string } | null;
-  trace?: Trace;
-  spans?: Span[];
 }
 
 function options(c: Config): { label: string; value: string | number | boolean }[] {

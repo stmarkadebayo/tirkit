@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, projectPath, type DatasetSummary, type Json } from "../api";
+import { api, projectPath, type DatasetSummary, type Json, type PlaygroundModels } from "../api";
 import { usePid, useRole } from "../hooks";
 import { fmtCost, fmtMs } from "../format";
 
@@ -71,7 +71,7 @@ export default function Playground() {
   const [msg, setMsg] = useState("");
   const models = useQuery({
     queryKey: ["models", pid],
-    queryFn: () => api<{ providers: Record<string, { configured: boolean; base_url?: string }>; models: string[] }>(projectPath(pid, "/playground/models")),
+    queryFn: () => api<PlaygroundModels>(projectPath(pid, "/playground/models")),
   });
   useEffect(() => {
     if (!st.model && models.data?.models.length) setSt((s) => ({ ...s, model: models.data!.models[0] }));

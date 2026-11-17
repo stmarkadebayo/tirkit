@@ -1,29 +1,19 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, projectPath, type Json } from "../api";
+import { api, projectPath, type Json, type PromptSummary, type PromptVersion, type PromptVersions } from "../api";
+
+export type { PromptVersion };
 import { usePid, useRole } from "../hooks";
 import { fmtAgo } from "../format";
 import { JsonBlock } from "../components/Content";
-
-export interface PromptVersion {
-  version: number;
-  kind: "text" | "chat";
-  template: Json;
-  config: Record<string, Json>;
-  message: string | null;
-  created_by: string | null;
-  created: number;
-  labels: string[];
-  variables: string[];
-}
 
 export function Prompts() {
   const pid = usePid();
   const nav = useNavigate();
   const q = useQuery({
     queryKey: ["prompts", pid],
-    queryFn: () => api<{ name: string; latest_version: number; labels: Record<string, number>; created: number }[]>(projectPath(pid, "/prompts")),
+    queryFn: () => api<PromptSummary[]>(projectPath(pid, "/prompts")),
   });
   return (
     <div>
@@ -81,7 +71,7 @@ export function PromptView() {
   const { name = "" } = useParams();
   const q = useQuery({
     queryKey: ["prompt", pid, name],
-    queryFn: () => api<{ versions: PromptVersion[] }>(projectPath(pid, `/prompts/${encodeURIComponent(name)}/versions`)),
+    queryFn: () => api<PromptVersions>(projectPath(pid, `/prompts/${encodeURIComponent(name)}/versions`)),
   });
   const [sel, setSel] = useState<number | null>(null);
   const [label, setLabel] = useState("production");

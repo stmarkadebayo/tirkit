@@ -1,22 +1,8 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, projectPath, type Json } from "../api";
+import { api, projectPath, type AlertList, type Evaluator, type EvaluatorList, type JudgeReports, type Json, type Queue } from "../api";
 import { usePid, useRole } from "../hooks";
 import { fmtAgo, fmtCost, fmtNum } from "../format";
-
-interface Evaluator {
-  evaluator_id: string;
-  name: string;
-  filter: Record<string, string>;
-  sampling_rate: number;
-  scorer: { spec: string; model?: string };
-  active: boolean;
-  n_scored: number;
-  n_failed: number;
-  n_skipped_budget: number;
-  n_not_sampled: number;
-  cursor: number;
-}
 
 export function OnlineEvals() {
   const pid = usePid();
@@ -24,7 +10,7 @@ export function OnlineEvals() {
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["evaluators", pid],
-    queryFn: () => api<{ evaluators: Evaluator[]; spend_today_usd: number }>(projectPath(pid, "/evaluators")),
+    queryFn: () => api<EvaluatorList>(projectPath(pid, "/evaluators")),
     refetchInterval: 10_000,
   });
   const [form, setForm] = useState({ name: "", spec: "judge:correctness", model: "", rate: "10", traceName: "", backfill: "0" });
@@ -134,24 +120,13 @@ export function OnlineEvals() {
   );
 }
 
-interface Alert {
-  alert_id: string;
-  name: string;
-  rule: { metric: string; op: string; threshold: number; window_s: number; score_name?: string };
-  channel: { type: string; url?: string; to?: string };
-  state: string;
-  last_value: number | null;
-  last_checked: number | null;
-  last_fired: number | null;
-}
-
 export function AlertsPage() {
   const pid = usePid();
   const role = useRole();
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["alerts", pid],
-    queryFn: () => api<{ alerts: Alert[]; events: { alert_id: string; at: number; state: string; value: number | null; delivered: number; error: string | null }[] }>(projectPath(pid, "/alerts")),
+    queryFn: () => api<AlertList>(projectPath(pid, "/alerts")),
     refetchInterval: 15_000,
   });
   const [f, setF] = useState({ name: "", metric: "error_rate", op: ">", threshold: "0.05", window: "60", score: "", channel: "webhook", target: "" });
@@ -204,7 +179,7 @@ export function AlertsPage() {
                 <td><b>{a.name}</b></td>
                 <td className="small mono">
                   {a.rule.metric}
-                  {a.rule.score_name ? `(${a.rule.score_name})` : ""} {a.rule.op} {a.rule.threshold} over {Math.round(a.rule.window_s / 60)} min
+                  {a.rule.score_name ? `(${a.rule.score_name})` : ""} {a.rule.op} {a.rule.threshold} over {Math.round((a.rule.window_s ?? 3600) / 60)} min
                 </td>
                 <td><span className={`badge ${a.state === "firing" ? "bad" : "good"}`}>{a.state}</span></td>
                 <td className="num">{a.last_value === null ? "—" : fmtNum(a.last_value, 3)}</td>
@@ -270,26 +245,16 @@ export function AlertsPage() {
   );
 }
 
-interface Report {
-  report_id: string;
-  rubric_name: string;
-  rubric_version: string;
-  model: string;
-  source: string;
-  created: number;
-  summary: Record<string, number | null | string>;
-}
-
 export function JudgeReliability() {
   const pid = usePid();
   const role = useRole();
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["judge-reports", pid],
-    queryFn: () => api<{ reports: Report[]; rubrics: { name: string; version: string; text: string }[]; builtin: Record<string, string> }>(projectPath(pid, "/judge-reports")),
+    queryFn: () => api<JudgeReports>(projectPath(pid, "/judge-reports")),
     refetchInterval: 10_000,
   });
-  const queues = useQuery({ queryKey: ["queues", pid], queryFn: () => api<{ queue_id: string; name: string; score_names: string[]; n_done: number }[]>(projectPath(pid, "/queues")) });
+  const queues = useQuery({ queryKey: ["queues", pid], queryFn: () => api<Queue[]>(projectPath(pid, "/queues")) });
   const [f, setF] = useState({ queue: "", label: "", rubric: "correctness", text: "", model: "" });
   const [msg, setMsg] = useState("");
   const rubricText = f.text || q.data?.builtin[f.rubric] || "";

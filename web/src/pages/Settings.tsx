@@ -1,33 +1,9 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, projectPath } from "../api";
+import { api, projectPath, type ApiKeyInfo as Key, type Member, type Project } from "../api";
 import { usePid, useRole } from "../hooks";
 import { fmtAgo } from "../format";
-
-interface Key {
-  public_key: string;
-  name: string | null;
-  created: number;
-  last_used: number | null;
-}
-interface Member {
-  user_id: string;
-  email: string;
-  name: string | null;
-  role: string;
-}
-interface Project {
-  project_id: string;
-  name: string;
-  settings: {
-    redact?: boolean;
-    redact_patterns?: { pattern: string; label?: string }[];
-    retention_days?: number | null;
-    judge_budget_usd_per_day?: number | null;
-  };
-  role: string;
-}
 
 export default function Settings() {
   const pid = usePid();
