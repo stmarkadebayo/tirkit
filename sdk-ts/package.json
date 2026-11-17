@@ -1,0 +1,19 @@
+{
+  "name": "@tirkit/sdk",
+  "version": "0.1.0",
+  "description": "Tirkit tracing SDK for Node.js: spans, OpenAI auto-instrumentation, feedback and prompts.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "README.md", "LICENSE"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.6",
+    "typescript": "5.7.2"
+  }
+}
