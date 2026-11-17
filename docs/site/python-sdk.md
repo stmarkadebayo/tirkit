@@ -4,7 +4,7 @@
 import tirkit
 
 tirkit.init()  # server mode with TIRKIT_HOST, else local tirkit.db
-tirkit.instrument()  # "openai", "anthropic", "transformers"
+tirkit.instrument()  # every installed SDK; or tirkit.instrument("openai", "bedrock", ...)
 ```
 
 | Call | What it does |
@@ -16,6 +16,10 @@ tirkit.instrument()  # "openai", "anthropic", "transformers"
 | `tirkit.feedback(trace_id, 1, comment="...")` | End-user feedback as a score |
 | `tirkit.get_prompt("name", label="production")` | Fetch a prompt; `.compile(**vars)`; `with prompt.use():` links spans |
 | `tirkit.copy_context_run(fn)` | Keep the parent span when submitting work to a thread pool |
+| `@tirkit.retry(attempts=3, retry_on=(RateLimitError,), backoff=0.5)` / `tirkit.with_retry(fn, ...)` | Retry, with one span per attempt under a `retry` span |
+| `tirkit.fallback(primary, secondary, name="answer")` | Try options in order; a `fallback` span records which one answered |
+| `tirkit.init(sample_rate=0.1, sampling_rules=[...])` / `tirkit.set_sampling(...)` | Keep a fraction of traces (see below) |
+| `span.mark_first_token()` | Record time to first token for a stream you handle yourself |
 | `tirkit.flush()` | Write queued spans now (also done at exit) |
 | `tirkit.register_price("my-model", input_tokens=2e-6, output_tokens=8e-6)` | Price a model |
 
@@ -28,6 +32,44 @@ tirkit.instrument()  # "openai", "anthropic", "transformers"
 - **Anthropic:** `messages.create` (incl. `stream=True`) and `messages.stream()`, vision and
   document inputs, tool use, thinking blocks, prompt-cache reads and writes.
 - **transformers:** every `pipeline(...)` call, with the span kind chosen from the task.
+
+## Span kinds
+
+`llm`, `embedding`, `rerank`, `retrieval`, `tool`, `agent`, `chain`, `guardrail`, `evaluator`,
+`image_generation`, `speech_to_text`, `text_to_speech`, `speech_to_speech`, `generic`, and
+`vector_db` (a vector store query), `mcp_tool` (a Model Context Protocol tool call), `human` (waiting
+for a person), `computer_use` (a computer-use action), `retry` and `fallback`.
+
+```python
+with tirkit.span("search-docs", kind="vector_db", input=query, db="pgvector") as s: ...
+with tirkit.span("approve-refund", kind="human") as s: ...
+```
+
+## Sampling
+
+Tracing every request can be too much at high volume. Sampling is decided once per trace, at the
+root span, and inherited by every child, so a trace is kept whole or dropped whole; the decision
+hashes the trace id, so every process agrees.
+
+```python
+tirkit.init(sample_rate=0.1)                       # or TIRKIT_SAMPLE_RATE=0.1
+tirkit.init(sample_rate=0.05, sampling_rules=[
+    {"name": "health*", "rate": 0},                # by root span name (glob)
+    {"kind": "agent", "rate": 1.0},                # or by kind; first match wins
+])
+```
+
+A span that fails is kept even when its trace was not sampled, together with the spans of that
+trace that finish after it (its parents), so errors are never lost. Pass
+`tirkit.set_sampling(rate, rules, keep_errors=False)` to drop them too. Spans that arrive over
+OTLP are not sampled by Tirkit: sample in your exporter or Collector.
+
+## Dashboard metrics
+
+The metrics endpoint reports, per time bucket and optional group (model, name, release, user,
+kind): the **prompt-cache hit rate** (cached input tokens / input tokens), **reasoning tokens**,
+and **time to first token** p50 and p95, next to tokens, cost and latency percentiles. Reasoning
+tokens are part of output tokens and are billed as output.
 
 ## Evaluation API
 

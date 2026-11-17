@@ -25,7 +25,7 @@ Main endpoints:
 | `GET /api/v1/prompts/{name}?label=` | Fetch a prompt version |
 | `GET /api/projects/{id}/traces` | Filtered trace list (`name`, `user_id`, `session_id`, `release`, `search`, `error`, `start_after`, `min_duration_ms`, ...) |
 | `GET /api/projects/{id}/traces/{trace_id}` | Trace with spans and scores |
-| `GET /api/projects/{id}/metrics` | Dashboard series (`since`, `until`, `buckets`, `group_by`) |
+| `GET /api/projects/{id}/metrics` | Dashboard series (`since`, `until`, `buckets`, `group_by`): tokens, cost, latency, cache hit rate, reasoning tokens, time to first token |
 | `GET /api/projects/{id}/compare?baseline=&candidate=` | Paired comparison with CIs |
 | `POST /api/projects/{id}/experiments/run` | Start a prompt × model × dataset experiment |
 | `GET /api/projects/{id}/export/traces.jsonl` | Export spans |
