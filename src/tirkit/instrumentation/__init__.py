@@ -24,6 +24,14 @@ def _registry() -> dict[str, Callable[[], bool]]:
 
         return hf()
 
+    def integration(module: str) -> Callable[[], bool]:
+        def run() -> bool:
+            import importlib
+
+            return bool(importlib.import_module(f"tirkit.integrations.{module}").instrument())
+
+        return run
+
     return {
         "openai": openai.instrument,
         "anthropic": anthropic.instrument,
@@ -34,6 +42,7 @@ def _registry() -> dict[str, Callable[[], bool]]:
         "mistral": mistral.instrument,
         "vertex": vertex.instrument,
         "transformers": transformers,
+        "openai_agents": integration("openai_agents"),
     }
 
 
