@@ -1,19 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { api, projectPath } from "../api";
+import { api, projectPath, type UserRow } from "../api";
 import { usePid } from "../hooks";
 import { fmtAgo, fmtCost, fmtNum } from "../format";
-
-interface UserRow {
-  user_id: string;
-  n_traces: number;
-  first_seen: number;
-  last_seen: number;
-  cost_usd: number | null;
-  input_tokens: number | null;
-  output_tokens: number | null;
-  n_errors: number;
-}
 
 export default function Users() {
   const pid = usePid();

@@ -1,20 +1,8 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { api, projectPath, type Trace } from "../api";
+import { api, projectPath, type SessionDetail, type SessionRow } from "../api";
 import { usePid } from "../hooks";
 import { fmtAgo, fmtCost, fmtMs, fmtNum, preview } from "../format";
-
-interface SessionRow {
-  session_id: string;
-  n_traces: number;
-  start: number;
-  end: number;
-  cost_usd: number | null;
-  input_tokens: number | null;
-  output_tokens: number | null;
-  has_error: number;
-  user_id: string | null;
-}
 
 export function Sessions() {
   const pid = usePid();
@@ -68,7 +56,7 @@ export function Sessions() {
 export function SessionView() {
   const pid = usePid();
   const { sid = "" } = useParams();
-  const q = useQuery({ queryKey: ["session", pid, sid], queryFn: () => api<{ traces: Trace[] }>(projectPath(pid, `/sessions/${encodeURIComponent(sid)}`)) });
+  const q = useQuery({ queryKey: ["session", pid, sid], queryFn: () => api<SessionDetail>(projectPath(pid, `/sessions/${encodeURIComponent(sid)}`)) });
   return (
     <div>
       <div className="small muted">

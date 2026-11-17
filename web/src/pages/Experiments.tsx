@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { api, projectPath, qs, type CompareResult, type ExperimentSummary, type Json } from "../api";
+import { api, projectPath, qs, type CompareResult, type ExperimentDetail, type ExperimentSummary, type Json } from "../api";
 import { usePid } from "../hooks";
 import { fmtAgo, fmtMs, preview } from "../format";
 import { CIBar } from "../components/Charts";
@@ -97,23 +97,6 @@ export function Experiments() {
       </div>
     </div>
   );
-}
-
-interface ExperimentDetail {
-  experiment_id: string;
-  name: string | null;
-  dataset: string;
-  dataset_version: string;
-  target: string | null;
-  outputs: Json[];
-  errors: (string | null)[];
-  latencies_ms: (number | null)[];
-  costs_usd: (number | null)[];
-  trace_ids: (string | null)[];
-  scores: Record<string, (number | null)[]>;
-  reasons: Record<string, (string | null)[]>;
-  summary: Record<string, { n: number; failed: number; mean?: number; ci?: [number, number] }>;
-  examples: { input: Json; expected: Json }[];
 }
 
 export function ExperimentView() {
