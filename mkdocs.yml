@@ -12,6 +12,7 @@ nav:
   - Integrations: integrations.md
   - Evaluating changes: evaluation.md
   - Self-hosting: self-hosting.md
+  - Security: security.md
   - HTTP API: api.md
 theme:
   name: material

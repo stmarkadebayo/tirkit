@@ -17,6 +17,7 @@ tirkit.instrument()  # "openai", "anthropic", "transformers"
 | `tirkit.get_prompt("name", label="production")` | Fetch a prompt; `.compile(**vars)`; `with prompt.use():` links spans |
 | `tirkit.copy_context_run(fn)` | Keep the parent span when submitting work to a thread pool |
 | `tirkit.flush()` | Write queued spans now (also done at exit) |
+| `tirkit.init(redact="strict")` | Redact PII before spans leave your process (`"off"`, `"secrets"`, `"strict"`; also `TIRKIT_REDACT`). Runs in the background exporter thread; see [Security](security.md) |
 | `tirkit.register_price("my-model", input_tokens=2e-6, output_tokens=8e-6)` | Price a model |
 
 ## What instrumentation records
