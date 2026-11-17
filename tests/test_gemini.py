@@ -130,7 +130,13 @@ def test_generate_content_with_image_records_tokens_and_media(sink) -> None:
     assert (
         s.kind == "llm" and s.model == "gemini-2.5-flash" and s.attributes["provider"] == "gemini"
     )
-    assert s.usage == {"input_tokens": 300, "output_tokens": 46, "cached_input_tokens": 100}
+    # reasoning_tokens is a subset of output_tokens (priced as output), kept as a usage unit.
+    assert s.usage == {
+        "input_tokens": 300,
+        "output_tokens": 46,
+        "cached_input_tokens": 100,
+        "reasoning_tokens": 40,
+    }
     assert s.attributes["reasoning_tokens"] == 40
     assert s.model_params == {"temperature": 0.1, "max_output_tokens": 200}
     assert s.input["system"] == "Be brief."

@@ -262,6 +262,9 @@ def serve(
     ),
     media_dir: Path | None = typer.Option(None, help="Where media files are stored."),
     workers: int = typer.Option(1, help="Uvicorn worker processes."),
+    otlp_grpc_port: int | None = typer.Option(
+        None, help='Also receive OTLP over gRPC on this port (needs "tirkit[otlp-grpc]").'
+    ),
 ) -> None:
     """Run the Tirkit server (API, OTLP ingest and web UI).
 
@@ -275,6 +278,11 @@ def serve(
         os.environ["TIRKIT_DATABASE_URL"] = database_url
     if media_dir:
         os.environ["TIRKIT_MEDIA_DIR"] = str(media_dir)
+    if otlp_grpc_port is not None:
+        if workers > 1:
+            raise typer.BadParameter("--otlp-grpc-port needs a single server worker")
+        os.environ["TIRKIT_OTLP_GRPC_PORT"] = str(otlp_grpc_port)
+        os.environ.setdefault("TIRKIT_OTLP_GRPC_HOST", host)
     if workers > 1 and os.environ.get("TIRKIT_EMBEDDED_WORKER") is None:
         os.environ["TIRKIT_EMBEDDED_WORKER"] = "0"  # one worker per process would be wasteful
         typer.echo("Multiple server workers: run `tirkit worker` separately for background jobs.")

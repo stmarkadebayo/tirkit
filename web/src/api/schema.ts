@@ -1953,6 +1953,19 @@ export interface components {
             p95_ms?: number | null;
             /** P99 Ms */
             p99_ms?: number | null;
+            /** Cached Input Tokens */
+            cached_input_tokens?: number | null;
+            /** Reasoning Tokens */
+            reasoning_tokens?: number | null;
+            /**
+             * Cache Hit Rate
+             * @description Cached input tokens / input tokens; null without input tokens.
+             */
+            cache_hit_rate?: number | null;
+            /** Ttft P50 Ms */
+            ttft_p50_ms?: number | null;
+            /** Ttft P95 Ms */
+            ttft_p95_ms?: number | null;
         };
         /** Metrics */
         Metrics: {

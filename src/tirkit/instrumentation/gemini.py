@@ -119,6 +119,7 @@ def _usage(s: Span, u: Any) -> None:
         output_audio_tokens=_modality_tokens(get(u, "candidates_tokens_details"), "AUDIO"),
     )
     if get(u, "thoughts_token_count"):
+        s.set_usage(reasoning_tokens=get(u, "thoughts_token_count"))
         s.attributes["reasoning_tokens"] = get(u, "thoughts_token_count")
 
 

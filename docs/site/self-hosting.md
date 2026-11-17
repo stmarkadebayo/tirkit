@@ -7,6 +7,7 @@ worker (UI experiments, online evals, alerts, retention).
 | --- | --- |
 | `POSTGRES_PASSWORD` | Database password (set it before exposing the server) |
 | `TIRKIT_PORT` | Host port (default 8000) |
+| `TIRKIT_OTLP_GRPC_PORT` | Also receive OTLP over gRPC on this port (off by default; needs `tirkit[otlp-grpc]`, see [OpenTelemetry](opentelemetry.md)) |
 | `TIRKIT_INSECURE_COOKIES` | `1` for plain HTTP; remove it when serving over HTTPS |
 | `LLM_BASE_URL`, `LLM_API_KEY` | OpenAI-compatible endpoint for playground, UI experiments and judges |
 | `ANTHROPIC_API_KEY` | Enables `anthropic/<model>` in the playground and judges |

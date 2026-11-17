@@ -29,6 +29,17 @@ class Settings:
     embedded_worker: bool = field(
         default_factory=lambda: os.environ.get("TIRKIT_EMBEDDED_WORKER", "1") != "0"
     )
+    # Optional OTLP/gRPC receiver (off unless a port is set; 0 picks a free port).
+    otlp_grpc_port: int | None = field(
+        default_factory=lambda: (
+            int(os.environ["TIRKIT_OTLP_GRPC_PORT"])
+            if os.environ.get("TIRKIT_OTLP_GRPC_PORT")
+            else None
+        )
+    )
+    otlp_grpc_host: str = field(
+        default_factory=lambda: os.environ.get("TIRKIT_OTLP_GRPC_HOST", "127.0.0.1")
+    )
     max_ingest_bytes: int = 20 * 1024 * 1024
     max_media_bytes: int = 50 * 1024 * 1024
     # Optional first admin created at startup (otherwise use the setup page).

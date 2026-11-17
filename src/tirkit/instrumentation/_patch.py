@@ -6,6 +6,7 @@ so the span closes when the stream ends), and never lets a tracing error reach t
 
 from __future__ import annotations
 
+import contextvars
 import functools
 import inspect
 import logging
@@ -137,15 +138,29 @@ class CallSpec:
     attributes: Callable[[Any, dict[str, Any]], dict[str, Any]] | None = None
     # Model parameters; by default every keyword argument not excluded above.
     build_params: Callable[[dict[str, Any]], dict[str, Any]] | None = None
+    # Model name when it is not the ``model`` keyword (e.g. ``modelId``, or on the client).
+    model: Callable[[Any, dict[str, Any]], str | None] | None = None
+    # Patched object is a module-level function: there is no ``self``.
+    function: bool = False
+    # Wrappers (LiteLLM) that call other instrumented SDKs inside: spans of those calls are
+    # not recorded, so one model call is one span and its cost is counted once.
+    suppress_nested: bool = False
+    # Names for leading positional arguments (``generate_content(contents)``), merged into the
+    # keyword arguments the other callbacks see.
+    arg_names: tuple[str, ...] = ()
 
 
 def _begin(spec: CallSpec, client: Any, kwargs: dict[str, Any]) -> Span:
     attrs = safe(spec.attributes, client, kwargs) if spec.attributes else None
+    if spec.model is not None:
+        model = safe(spec.model, client, kwargs)
+    else:
+        model = kwargs.get("model")
     return start_span(
         spec.name,
         kind=safe(spec.kind, kwargs) or "llm",
         input=safe(spec.build_input, kwargs),
-        model=kwargs.get("model") if isinstance(kwargs.get("model"), str) else None,
+        model=model if isinstance(model, str) else None,
         model_params=(
             safe(spec.build_params, kwargs)
             if spec.build_params
@@ -161,29 +176,69 @@ def _complete(spec: CallSpec, s: Span, result: Any, kwargs: dict[str, Any]) -> N
     finish_span(s)
 
 
+_suppressed: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "tirkit_suppress_nested", default=False
+)
+
+
+def _stream_proxy(result: Any, s: Span, handlers: Any, is_async: bool = False) -> Any:
+    """Sync or async proxy. Streams that support both (LiteLLM) follow the calling method."""
+    if is_async or (hasattr(result, "__aiter__") and not hasattr(result, "__iter__")):
+        return AsyncStreamProxy(result, s, *handlers)
+    return SyncStreamProxy(result, s, *handlers)
+
+
 def wrap_method(spec: CallSpec) -> Callable[[Any], Any]:
-    """Factory for :func:`patch`: wraps a sync or async SDK method."""
+    """Factory for :func:`patch`: wraps a sync or async SDK method (or, with
+    ``spec.function``, a module-level function)."""
+
+    def split(all_args: tuple[Any, ...]) -> Any:
+        return None if spec.function else (all_args[0] if all_args else None)
+
+    def merged(all_args: tuple[Any, ...], kwargs: dict[str, Any]) -> dict[str, Any]:
+        if not spec.arg_names:
+            return kwargs
+        positional = all_args if spec.function else all_args[1:]
+        return {**dict(zip(spec.arg_names, positional, strict=False)), **kwargs}
+
+    def begin(client: Any, kwargs: dict[str, Any]) -> Span | None:
+        if _suppressed.get():
+            return None
+        return safe(_begin, spec, client, kwargs)  # type: ignore[no-any-return]
+
+    def settle(s: Span, result: Any, kwargs: dict[str, Any], is_async: bool = False) -> Any:
+        if spec.stream_handlers and safe(spec.is_stream, kwargs, result):
+            handlers = safe(spec.stream_handlers, s, kwargs)
+            if handlers:
+                return _stream_proxy(result, s, handlers, is_async)
+        _complete(spec, s, result, kwargs)
+        return result
 
     def make(original: Any) -> Any:
+        def call(all_args: tuple[Any, ...], kwargs: dict[str, Any]) -> Any:
+            if spec.suppress_nested:
+                token = _suppressed.set(True)
+                try:
+                    return original(*all_args, **kwargs)
+                finally:
+                    _suppressed.reset(token)
+            return original(*all_args, **kwargs)
+
         if inspect.iscoroutinefunction(original):
 
             @functools.wraps(original)
-            async def async_wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
-                s = safe(_begin, spec, self, kwargs)
+            async def async_wrapper(*all_args: Any, **kwargs: Any) -> Any:
+                kw = merged(all_args, kwargs)
+                s = begin(split(all_args), kw)
                 if s is None:
-                    return await original(self, *args, **kwargs)
+                    return await original(*all_args, **kwargs)
                 try:
-                    result = await original(self, *args, **kwargs)
+                    result = await call(all_args, kwargs)
                 except BaseException as exc:
                     s.record_error(exc)
                     finish_span(s)
                     raise
-                if spec.stream_handlers and safe(spec.is_stream, kwargs, result):
-                    handlers = safe(spec.stream_handlers, s, kwargs)
-                    if handlers:
-                        return AsyncStreamProxy(result, s, *handlers)
-                _complete(spec, s, result, kwargs)
-                return result
+                return settle(s, result, kw, True)
 
             return async_wrapper
 
@@ -195,32 +250,23 @@ def wrap_method(spec: CallSpec) -> Callable[[Any], Any]:
                 s.record_error(exc)
                 finish_span(s)
                 raise
-            if spec.stream_handlers and safe(spec.is_stream, kwargs, result):
-                handlers = safe(spec.stream_handlers, s, kwargs)
-                if handlers:
-                    return AsyncStreamProxy(result, s, *handlers)
-            _complete(spec, s, result, kwargs)
-            return result
+            return settle(s, result, kwargs, True)
 
         @functools.wraps(original)
-        def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
-            s = safe(_begin, spec, self, kwargs)
+        def wrapper(*all_args: Any, **kwargs: Any) -> Any:
+            kw = merged(all_args, kwargs)
+            s = begin(split(all_args), kw)
             if s is None:
-                return original(self, *args, **kwargs)
+                return original(*all_args, **kwargs)
             try:
-                result = original(self, *args, **kwargs)
+                result = call(all_args, kwargs)
             except BaseException as exc:
                 s.record_error(exc)
                 finish_span(s)
                 raise
             if inspect.isawaitable(result):
-                return finish_awaitable(result, s, kwargs)
-            if spec.stream_handlers and safe(spec.is_stream, kwargs, result):
-                handlers = safe(spec.stream_handlers, s, kwargs)
-                if handlers:
-                    return SyncStreamProxy(result, s, *handlers)
-            _complete(spec, s, result, kwargs)
-            return result
+                return finish_awaitable(result, s, kw)
+            return settle(s, result, kw)
 
         return wrapper
 

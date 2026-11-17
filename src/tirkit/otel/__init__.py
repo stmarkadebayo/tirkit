@@ -1,8 +1,7 @@
 """OpenTelemetry interop (SPEC FR-6): OTLP traces in, mapped onto Tirkit spans; Tirkit spans out.
 
-Maps the OpenTelemetry GenAI semantic conventions (``gen_ai.*``, from the
-open-telemetry/semantic-conventions-genai registry, checked 2026-11) and OpenInference attributes
-(``openinference.span.kind``, ``llm.*``, ``input.value``...). Unmapped attributes are kept as Tirkit
+Attribute names from the GenAI conventions, OpenInference, OpenLLMetry and the Vercel AI SDK are
+mapped in one place, :mod:`tirkit.otel.mapping`. Unmapped attributes are kept as Tirkit
 attributes, so nothing is lost.
 """
 
@@ -12,56 +11,8 @@ import base64
 import json
 from typing import Any
 
+from tirkit.otel import mapping
 from tirkit.tracing import Span
-
-_OPERATION_KIND = {
-    "chat": "llm",
-    "text_completion": "llm",
-    "generate_content": "llm",
-    "embeddings": "embedding",
-    "execute_tool": "tool",
-    "invoke_agent": "agent",
-    "create_agent": "agent",
-    "retrieval": "retrieval",
-}
-_OPENINFERENCE_KIND = {
-    "LLM": "llm",
-    "EMBEDDING": "embedding",
-    "TOOL": "tool",
-    "AGENT": "agent",
-    "CHAIN": "chain",
-    "RETRIEVER": "retrieval",
-    "RERANKER": "rerank",
-    "GUARDRAIL": "guardrail",
-    "EVALUATOR": "evaluator",
-}
-_PARAMS = {
-    "gen_ai.request.temperature": "temperature",
-    "gen_ai.request.max_tokens": "max_tokens",
-    "gen_ai.request.top_p": "top_p",
-    "gen_ai.request.top_k": "top_k",
-    "gen_ai.request.frequency_penalty": "frequency_penalty",
-    "gen_ai.request.presence_penalty": "presence_penalty",
-    "gen_ai.request.seed": "seed",
-    "gen_ai.request.stop_sequences": "stop",
-    "gen_ai.request.reasoning.level": "reasoning_level",
-    "gen_ai.request.choice.count": "n",
-}
-_USAGE = {
-    "gen_ai.usage.input_tokens": "input_tokens",
-    "gen_ai.usage.output_tokens": "output_tokens",
-    "gen_ai.usage.cache_read.input_tokens": "cached_input_tokens",
-    "gen_ai.usage.cache_write.input_tokens": "cache_write_tokens",
-    "gen_ai.usage.audio.input_tokens": "input_audio_tokens",
-    "gen_ai.usage.audio.output_tokens": "output_audio_tokens",
-    # Older conventions and OpenInference
-    "gen_ai.usage.prompt_tokens": "input_tokens",
-    "gen_ai.usage.completion_tokens": "output_tokens",
-    "llm.token_count.prompt": "input_tokens",
-    "llm.token_count.completion": "output_tokens",
-    "llm.token_count.prompt_details.cache_read": "cached_input_tokens",
-    "llm.token_count.prompt_details.audio": "input_audio_tokens",
-}
 
 
 def any_value(v: dict[str, Any]) -> Any:
@@ -91,15 +42,6 @@ def _attrs(items: list[dict[str, Any]] | None) -> dict[str, Any]:
     return {kv["key"]: any_value(kv.get("value", {})) for kv in items or []}
 
 
-def _maybe_json(value: Any) -> Any:
-    if isinstance(value, str) and value[:1] in "[{":
-        try:
-            return json.loads(value)
-        except ValueError:
-            return value
-    return value
-
-
 def _hex_id(value: str | None, from_proto: bool) -> str | None:
     if not value:
         return None
@@ -118,15 +60,36 @@ def otlp_to_spans(payload: dict[str, Any], *, from_proto: bool = False) -> list[
             scope = (ss.get("scope") or ss.get("instrumentationLibrary") or {}).get("name")
             for sp in ss.get("spans", []):
                 out.append(_span(sp, resource, scope, from_proto))
+    _spread_trace_fields(out)
     return out
+
+
+def _spread_trace_fields(spans: list[Span]) -> None:
+    """OTel libraries often set the session and user only on the model call, while Tirkit reads
+    them from the root span (the SDK sets them on every span). Copy them to the other spans of
+    the same trace in this batch."""
+    found: dict[str, tuple[str | None, str | None]] = {}
+    for s in spans:
+        if s.session_id or s.user_id:
+            sess, user = found.get(s.trace_id, (None, None))
+            found[s.trace_id] = (sess or s.session_id, user or s.user_id)
+    if not found:
+        return
+    for s in spans:
+        sess, user = found.get(s.trace_id, (None, None))
+        s.session_id = s.session_id or sess
+        s.user_id = s.user_id or user
 
 
 def _span(sp: dict[str, Any], resource: dict[str, Any], scope: str | None, proto: bool) -> Span:
     a = _attrs(sp.get("attributes"))
-    trace_id = _hex_id(sp.get("traceId"), proto) or ""
+    events = [
+        {"name": ev.get("name"), "attributes": _attrs(ev.get("attributes"))}
+        for ev in sp.get("events") or []
+    ]
     s = Span(
         name=sp.get("name") or "span",
-        trace_id=trace_id,
+        trace_id=_hex_id(sp.get("traceId"), proto) or "",
         span_id=_hex_id(sp.get("spanId"), proto) or "",
         parent_id=_hex_id(sp.get("parentSpanId"), proto),
         start=int(sp.get("startTimeUnixNano", 0)) / 1e9,
@@ -134,66 +97,11 @@ def _span(sp: dict[str, Any], resource: dict[str, Any], scope: str | None, proto
     )
     status = sp.get("status") or {}
     if status.get("code") in (2, "STATUS_CODE_ERROR"):
-        s.record_error(status.get("message") or "error")
-
-    op = a.pop("gen_ai.operation.name", None)
-    oi_kind = a.pop("openinference.span.kind", None)
-    s.kind = _OPERATION_KIND.get(str(op), "") or _OPENINFERENCE_KIND.get(str(oi_kind), "")
-    if not s.kind:
-        s.kind = "llm" if any(k.startswith("gen_ai.usage") for k in a) else "generic"
-
-    s.model = (
-        a.pop("gen_ai.response.model", None)
-        or a.pop("gen_ai.request.model", None)
-        or a.pop("llm.model_name", None)
-    )
-    a.pop("gen_ai.request.model", None)
-    provider = a.pop("gen_ai.provider.name", None) or a.pop("gen_ai.system", None)
-    if provider:
-        s.attributes["provider"] = provider
-    for key, unit in _USAGE.items():
-        if key in a:
-            value = a.pop(key)
-            if isinstance(value, int | float) and unit not in s.usage:
-                s.usage[unit] = float(value)
-    for key, param in _PARAMS.items():
-        if key in a:
-            s.model_params[param] = a.pop(key)
-
-    inp: dict[str, Any] = {}
-    if "gen_ai.input.messages" in a:
-        inp["messages"] = _maybe_json(a.pop("gen_ai.input.messages"))
-    if "gen_ai.system_instructions" in a:
-        inp["system"] = _maybe_json(a.pop("gen_ai.system_instructions"))
-    if "gen_ai.tool.definitions" in a:
-        inp["tools"] = _maybe_json(a.pop("gen_ai.tool.definitions"))
-    if "gen_ai.tool.call.arguments" in a:
-        inp["arguments"] = _maybe_json(a.pop("gen_ai.tool.call.arguments"))
-    if "gen_ai.retrieval.query.text" in a:
-        inp["query"] = a.pop("gen_ai.retrieval.query.text")
-    if not inp and "input.value" in a:
-        s.input = _maybe_json(a.pop("input.value"))
-    elif inp:
-        s.input = inp
-    if "gen_ai.output.messages" in a:
-        s.output = _maybe_json(a.pop("gen_ai.output.messages"))
-    elif "gen_ai.tool.call.result" in a:
-        s.output = _maybe_json(a.pop("gen_ai.tool.call.result"))
-    elif "gen_ai.retrieval.documents" in a:
-        s.output = _maybe_json(a.pop("gen_ai.retrieval.documents"))
-    elif "output.value" in a:
-        s.output = _maybe_json(a.pop("output.value"))
-    a.pop("input.mime_type", None)
-    a.pop("output.mime_type", None)
-
-    s.session_id = a.pop("gen_ai.conversation.id", None) or a.pop("session.id", None) or None
-    s.user_id = a.pop("user.id", None) or a.pop("enduser.id", None)
-    if "gen_ai.response.time_to_first_chunk" in a:
-        s.ttft_ms = float(a.pop("gen_ai.response.time_to_first_chunk")) * 1000
-    if "gen_ai.response.finish_reasons" in a:
-        s.attributes["finish_reason"] = a.pop("gen_ai.response.finish_reasons")
-    if "gen_ai.response.id" in a:
-        s.attributes["response_id"] = a.pop("gen_ai.response.id")
+        s.record_error(status.get("message") or "")
+        s.error = s.error or None
+    mapping.apply(s, a, events)
+    if s.status == "error" and not s.error:
+        s.error = "error"
     s.release = resource.get("service.version")
     s.attributes.update(a)
     if resource.get("service.name"):
@@ -240,8 +148,15 @@ def _to_any(value: Any) -> dict[str, Any]:
     return {"stringValue": json.dumps(value, default=str)}
 
 
-_KIND_TO_OPERATION = {v: k for k, v in _OPERATION_KIND.items() if k != "text_completion"}
-_KIND_TO_OPERATION["llm"] = "chat"
+_KIND_TO_OPERATION = {
+    "llm": "chat",
+    "embedding": "embeddings",
+    "tool": "execute_tool",
+    "mcp_tool": "execute_tool",
+    "agent": "invoke_agent",
+    "retrieval": "retrieval",
+    "rerank": "rerank",
+}
 
 
 def spans_to_otlp(spans: list[Span], service_name: str = "tirkit") -> dict[str, Any]:
@@ -260,6 +175,7 @@ def spans_to_otlp(spans: list[Span], service_name: str = "tirkit") -> dict[str, 
             "cache_write_tokens": "gen_ai.usage.cache_write.input_tokens",
             "input_audio_tokens": "gen_ai.usage.audio.input_tokens",
             "output_audio_tokens": "gen_ai.usage.audio.output_tokens",
+            "reasoning_tokens": "gen_ai.usage.reasoning.output_tokens",
         }
         for unit, value in s.usage.items():
             if unit in rev_usage:
@@ -274,6 +190,10 @@ def spans_to_otlp(spans: list[Span], service_name: str = "tirkit") -> dict[str, 
             attrs.append(_kv("output.value", json.dumps(s.output, default=str)))
         if s.cost_usd is not None:
             attrs.append(_kv("tirkit.cost_usd", s.cost_usd))
+        if s.ttft_ms is not None:
+            attrs.append(_kv("gen_ai.response.time_to_first_chunk", s.ttft_ms / 1000))
+        if s.kind not in _KIND_TO_OPERATION and s.kind != "generic":
+            attrs.append(_kv("tirkit.span.kind", s.kind))
         span = {
             "traceId": s.trace_id.rjust(32, "0")[:32],
             "spanId": s.span_id.rjust(16, "0")[:16],

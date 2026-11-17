@@ -15,7 +15,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from tirkit import pricing
-from tirkit.media import LocalMediaStore
+from tirkit.media import LocalMediaStore, extract_media
 from tirkit.redact import redact_obj
 from tirkit.server import models as m
 from tirkit.server.deps import (
@@ -57,6 +57,36 @@ def _prepare(request: Request, spans: list[Span], pid: str) -> list[Span]:
             s.output = redact_obj(s.output, extra)
             s.attributes = redact_obj(s.attributes, extra)
     return spans
+
+
+class _ProjectMedia:
+    """Media store for one project: writes the bytes and records them for the project."""
+
+    def __init__(self, media: LocalMediaStore, st: SQLStore) -> None:
+        self.media = media
+        self.st = st
+
+    def put(self, data: bytes, mime: str) -> dict[str, Any]:
+        ref = self.media.put(data, mime)
+        self.st.record_media(ref["sha256"], mime, len(data))
+        return ref
+
+    def get(self, sha256: str) -> bytes | None:
+        return self.media.get(sha256)
+
+
+def save_otlp_spans(request: Any, pid: str, spans: list[Span]) -> None:
+    """Store spans that arrived over OTLP (HTTP or gRPC) with the same treatment the SDK path
+    gets: inline base64 media moved to the media store (the SDK does this before sending),
+    then cost and redaction (:func:`_prepare`). ``request`` needs only ``.app``."""
+    st = app_store(request).for_project(pid)
+    media = _ProjectMedia(app_media(request), st)
+    for s in spans:
+        s.input = extract_media(s.input, media)
+        s.output = extract_media(s.output, media)
+        s.attributes = extract_media(s.attributes, media)
+    st.save_spans(_prepare(request, spans, pid))
+    count_spans(request, "otlp", len(spans))
 
 
 @router.post(
@@ -103,8 +133,7 @@ async def otlp_traces(
         spans = decode_request(body, ctype)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(400, f"invalid OTLP payload: {exc}") from exc
-    store.for_project(pid).save_spans(_prepare(request, spans, pid))
-    count_spans(request, "otlp", len(spans))
+    save_otlp_spans(request, pid, spans)
     if "json" in ctype:
         return Response("{}", media_type="application/json")
     return Response(b"", media_type="application/x-protobuf")
