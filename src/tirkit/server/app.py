@@ -28,6 +28,7 @@ from tirkit.server.deps import (
     project_ctx,
 )
 from tirkit.server.routers import ROUTERS
+from tirkit.server.security import SecurityMiddleware, build_limits
 from tirkit.server.settings import Settings
 from tirkit.store import open_store
 
@@ -69,6 +70,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.media = LocalMediaStore(settings.media_dir)
     app.state.cache = TTLCache()
+    app.state.limits = build_limits(settings, store)
+    app.add_middleware(SecurityMiddleware, settings=settings)  # type: ignore[arg-type]
 
     for router in ROUTERS:
         app.include_router(router, responses=openapi.ERROR_RESPONSES)
