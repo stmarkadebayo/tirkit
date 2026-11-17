@@ -239,6 +239,20 @@ def traces_show(trace_id: str, db: str | None = DB_OPTION) -> None:
         typer.echo(f"{pad}- {s.name} [{s.kind}] {s.duration_ms or 0:.1f}ms{extra}{cost} {s.status}")
 
 
+def _shared_metrics_dir() -> None:
+    """Several server processes share Prometheus counters through files in one directory
+    (``$PROMETHEUS_MULTIPROC_DIR``); files left by a previous run are removed first."""
+    import tempfile
+
+    path = os.environ.get("PROMETHEUS_MULTIPROC_DIR")
+    if not path:
+        os.environ["PROMETHEUS_MULTIPROC_DIR"] = tempfile.mkdtemp(prefix="tirkit-metrics-")
+        return
+    Path(path).mkdir(parents=True, exist_ok=True)
+    for stale in Path(path).glob("*.db"):
+        stale.unlink()
+
+
 @app.command()
 def serve(
     host: str = typer.Option("127.0.0.1", help="Interface to bind."),
@@ -264,6 +278,8 @@ def serve(
     if workers > 1 and os.environ.get("TIRKIT_EMBEDDED_WORKER") is None:
         os.environ["TIRKIT_EMBEDDED_WORKER"] = "0"  # one worker per process would be wasteful
         typer.echo("Multiple server workers: run `tirkit worker` separately for background jobs.")
+    if workers > 1:
+        _shared_metrics_dir()
     if host in ("127.0.0.1", "localhost") and "TIRKIT_INSECURE_COOKIES" not in os.environ:
         os.environ["TIRKIT_INSECURE_COOKIES"] = "1"  # plain-HTTP local use
     typer.echo(f"Tirkit server on http://{host}:{port}  (API docs: /api/docs)")
