@@ -80,6 +80,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tirkit"]
+# The built web UI is copied here by `make dist` (git-ignored) so `pip install tirkit[server]`
+# followed by `tirkit serve` shows the UI.
+artifacts = ["src/tirkit/server/web"]
 
 [tool.ruff]
 cache-dir = ".cache/ruff"
