@@ -10,6 +10,7 @@ from tirkit.instrumentation._patch import unpatch_all
 def _registry() -> dict[str, Callable[[], bool]]:
     from tirkit.instrumentation import (
         anthropic,
+        bedrock,
         cohere,
         gemini,
         litellm,
@@ -25,6 +26,7 @@ def _registry() -> dict[str, Callable[[], bool]]:
     return {
         "openai": openai.instrument,
         "anthropic": anthropic.instrument,
+        "bedrock": bedrock.instrument,
         "cohere": cohere.instrument,
         "gemini": gemini.instrument,
         "litellm": litellm.instrument,
