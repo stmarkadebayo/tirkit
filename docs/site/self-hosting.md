@@ -29,6 +29,9 @@ retention period per project in **Settings**; the worker deletes older traces ho
 **Single process.** `pip install "tirkit[server]" && tirkit serve --database-url tirkit.db` runs the API,
 UI and an embedded worker on SQLite, for evaluation and small teams.
 
+**Ingestion does not block the server.** Decoding, validation and the database write for each
+batch run in a thread pool, so a slow database does not stall `/api/health` or the UI.
+
 **Scale.** Measured on a laptop: 1,679–3,105 spans/s sustained ingestion with nothing dropped, and
 trace-list queries at most 83 ms p95 with 1 million spans (see README Results for the method).
 

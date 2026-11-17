@@ -410,8 +410,34 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Trace */
+        /**
+         * Get Trace
+         * @description The trace, its scores and a light span tree (``TraceDetail``). Inputs and outputs are cut
+         *     to ``preview`` characters, less on big pages (all previews of a page share a budget; the
+         *     response says how many characters each got); get one full span from ``.../spans/{span_id}``.
+         *     With ``full=1`` every span comes in full instead (``TraceDetailFull``).
+         */
         get: operations["get_trace_api_projects__project_id__traces__trace_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/traces/{trace_id}/spans/{span_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Span
+         * @description One span in full: input, output, parameters and attributes.
+         */
+        get: operations["get_span_api_projects__project_id__traces__trace_id__spans__span_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2709,6 +2735,52 @@ export interface components {
             /** Items */
             items: components["schemas"]["Span"][];
         };
+        /**
+         * SpanSummary
+         * @description A span in the light trace view: structure, timings, tokens, cost and short previews.
+         *     ``*_preview`` is the start of the input or output (strings as text, anything else as JSON
+         *     text); fetch the full span from ``GET .../traces/{trace_id}/spans/{span_id}``.
+         */
+        SpanSummary: {
+            /** Span Id */
+            span_id: string;
+            /** Parent Id */
+            parent_id: string | null;
+            /** Name */
+            name: string;
+            /** Kind */
+            kind: string;
+            /** Status */
+            status: string;
+            /** Level */
+            level: string;
+            /** Start */
+            start: number;
+            /** End */
+            end: number | null;
+            /** Duration Ms */
+            duration_ms: number | null;
+            /** Ttft Ms */
+            ttft_ms: number | null;
+            /** Model */
+            model: string | null;
+            /** Input Tokens */
+            input_tokens: number | null;
+            /** Output Tokens */
+            output_tokens: number | null;
+            /** Cost Usd */
+            cost_usd: number | null;
+            /** Error */
+            error: string | null;
+            /** Input Preview */
+            input_preview: string | null;
+            /** Output Preview */
+            output_preview: string | null;
+            /** Input Truncated */
+            input_truncated: boolean;
+            /** Output Truncated */
+            output_truncated: boolean;
+        };
         /** ToggleEvaluatorRequest */
         ToggleEvaluatorRequest: {
             /**
@@ -2755,13 +2827,75 @@ export interface components {
             /** Has Error */
             has_error: boolean;
         };
-        /** TraceDetail */
+        /**
+         * TraceDetail
+         * @description A trace with a light span tree (one page of spans, oldest first). ``omitted`` spans of
+         *     the trace come after this page; ask for them with ``offset=next_offset``.
+         */
         TraceDetail: {
+            trace: components["schemas"]["TraceHead"];
+            /** Spans */
+            spans: components["schemas"]["SpanSummary"][];
+            /** Scores */
+            scores: components["schemas"]["ScoreRow"][];
+            /** Total Spans */
+            total_spans: number;
+            /** Offset */
+            offset: number;
+            /** Omitted */
+            omitted: number;
+            /** Next Offset */
+            next_offset: number | null;
+            /**
+             * Preview
+             * @description Characters of input and output preview each span got
+             */
+            preview: number;
+        };
+        /**
+         * TraceDetailFull
+         * @description The trace with every span in full (``?full=1``; the shape before the light view).
+         */
+        TraceDetailFull: {
             trace: components["schemas"]["Trace"];
             /** Spans */
             spans: components["schemas"]["Span"][];
             /** Scores */
             scores: components["schemas"]["ScoreRow"][];
+        };
+        /**
+         * TraceHead
+         * @description A trace summary without the root's input and output (see the root span's previews).
+         */
+        TraceHead: {
+            /** Trace Id */
+            trace_id: string;
+            /** Name */
+            name: string | null;
+            /** Session Id */
+            session_id: string | null;
+            /** User Id */
+            user_id: string | null;
+            /** Release */
+            release: string | null;
+            /** Tags */
+            tags: string[];
+            /** Start */
+            start: number | null;
+            /** End */
+            end: number | null;
+            /** Duration Ms */
+            duration_ms: number | null;
+            /** N Spans */
+            n_spans: number;
+            /** Input Tokens */
+            input_tokens: number | null;
+            /** Output Tokens */
+            output_tokens: number | null;
+            /** Cost Usd */
+            cost_usd: number | null;
+            /** Has Error */
+            has_error: boolean;
         };
         /** TraceList */
         TraceList: {
@@ -3688,7 +3822,16 @@ export interface operations {
     };
     get_trace_api_projects__project_id__traces__trace_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 1 or true: every span in full (old shape) */
+                full?: string | null;
+                /** @description Spans per page, 1 to 50000 */
+                limit?: number;
+                /** @description First span of the page (oldest first) */
+                offset?: number;
+                /** @description Preview characters, 0 to 20000 */
+                preview?: number;
+            };
             header?: never;
             path: {
                 trace_id: string;
@@ -3704,7 +3847,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TraceDetail"];
+                    "application/json": components["schemas"]["TraceDetail"] | components["schemas"]["TraceDetailFull"];
+                };
+            };
+            /** @description Client error: {"detail": "..."} */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get_span_api_projects__project_id__traces__trace_id__spans__span_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trace_id: string;
+                span_id: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Span"];
                 };
             };
             /** @description Client error: {"detail": "..."} */

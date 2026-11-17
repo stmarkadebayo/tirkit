@@ -23,6 +23,21 @@ tirkit.instrument()  # every installed SDK; or tirkit.instrument("openai", "bedr
 | `tirkit.flush()` | Write queued spans now (also done at exit) |
 | `tirkit.register_price("my-model", input_tokens=2e-6, output_tokens=8e-6)` | Price a model |
 
+## Delivery
+
+Spans are queued and sent by a background thread, so a traced call never waits for the network or
+the database. If the queue (10,000 spans) is full, spans are dropped and counted
+(`tirkit.get_client().exporter.stats()`), never blocking your code.
+
+- **Retries.** A failed batch is retried (timeouts, connection errors, 408, 429 and 5xx) with
+  jittered exponential backoff (up to 5 s) and at most 5 retries within 30 s
+  (`max_retries`, `max_retry_s` on `BatchExporter`). A `Retry-After` header from the server is
+  honoured instead of the backoff, unless it would exceed the 30 s budget. Other 4xx errors fail at
+  once and are counted as failed. Re-sending a batch is safe: ingestion is idempotent.
+- **Forking.** Gunicorn, Celery and `multiprocessing` (fork start method) work: a forked process gets
+  its own exporter thread, queue, HTTP connections and SQLite connection, and exits with its spans
+  flushed. Spans queued in the parent before the fork are exported by the parent.
+
 ## What instrumentation records
 
 - **OpenAI** (and any OpenAI-compatible server: Ollama, vLLM, LM Studio, OpenRouter, ...): chat

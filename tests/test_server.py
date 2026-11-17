@@ -94,7 +94,7 @@ def test_ingest_read_and_project_isolation(client) -> None:
     assert r.json() == {"accepted": 1}
     traces = client.get(f"/api/projects/{pid}/traces").json()
     assert traces["total"] == 1 and traces["items"][0]["cost_usd"] > 0
-    detail = client.get(f"/api/projects/{pid}/traces/{s.trace_id}").json()
+    detail = client.get(f"/api/projects/{pid}/traces/{s.trace_id}?full=1").json()
     assert detail["spans"][0]["output"] == "yo"
     # The key reads its own project but not another one.
     assert client.get(f"/api/projects/{pid}/traces", headers=basic(pk, sk)).status_code == 200
@@ -371,7 +371,7 @@ def test_sdk_server_mode_with_media_and_feedback(live_server) -> None:
     tirkit.feedback(s.trace_id, 1, comment="great")
     assert tirkit.flush(10)
     client.shutdown()
-    detail = c.get(f"/api/projects/{pid}/traces/{s.trace_id}").json()
+    detail = c.get(f"/api/projects/{pid}/traces/{s.trace_id}?full=1").json()
     ref = detail["spans"][0]["input"]["image"]
     assert ref["type"] == "media" and ref["mime"] == "image/png"
     assert c.get(f"/api/projects/{pid}/media/{ref['sha256']}").content == png

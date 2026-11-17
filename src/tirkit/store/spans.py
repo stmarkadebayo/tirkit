@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Iterable, Sequence
 from typing import Any
@@ -17,11 +18,14 @@ SPAN_COLUMNS = (
     "session_id user_id release tags prompt_version attributes"
 ).split()
 
+_ERROR_PREVIEW = 2000  # characters of a span's error message in the light trace view
+
 _SPAN_JSON = {"model_params", "input", "output", "usage", "tags", "attributes"}
 
 # Span filters: key -> (column, operator)
 _SPAN_FILTERS = {
     "trace_id": ("trace_id", "="),
+    "span_id": ("span_id", "="),
     "parent_id": ("parent_id", "="),
     "name": ("name", "="),
     "kind": ("kind", "="),
@@ -259,6 +263,68 @@ class SpansMixin(StoreBase):
     def get_spans(self, trace_id: str) -> list[Span]:
         return self.query_spans({"trace_id": trace_id}, limit=100_000, order="asc")
 
+    def get_span(self, trace_id: str, span_id: str) -> Span | None:
+        found = self.query_spans({"trace_id": trace_id, "span_id": span_id}, limit=1)
+        return found[0] if found else None
+
+    def span_tree(
+        self, trace_id: str, *, limit: int = 10_000, offset: int = 0, preview: int = 2000
+    ) -> tuple[list[dict[str, Any]], int]:
+        """A light view of a trace's spans, oldest first: ids, parents, names, timings, tokens,
+        cost, the error and the first ``preview`` characters of input and output (strings
+        unquoted, anything else as JSON text). The database truncates the content, so large
+        inputs and outputs never leave it. Returns ``(rows, total spans in the trace)``."""
+        d = self.dialect
+        n = max(0, int(preview))
+        cut = n + 2  # a JSON string has two quotes around its n characters
+        rows = self.execute(
+            "SELECT span_id, parent_id, name, kind, status, level, start_time, end_time, "
+            "duration_ms, ttft_ms, model, input_tokens, output_tokens, cost_usd, "
+            f"substr(error, 1, {_ERROR_PREVIEW}), "
+            f"substr({d.json_text('input')}, 1, {cut}), length({d.json_text('input')}), "
+            f"substr({d.json_text('output')}, 1, {cut}), length({d.json_text('output')}) "
+            "FROM spans WHERE project_id = ? AND trace_id = ? "
+            "ORDER BY start_time, span_id LIMIT ? OFFSET ?",
+            [self.project_id, trace_id, int(limit), int(offset)],
+        )
+        if offset == 0 and len(rows) < limit:
+            total = len(rows)
+        else:
+            total = int(
+                self.execute(
+                    "SELECT COUNT(*) FROM spans WHERE project_id = ? AND trace_id = ?",
+                    [self.project_id, trace_id],
+                )[0][0]
+            )
+        out = []
+        for r in rows:
+            in_preview, in_cut = _preview(r[15], r[16], n)
+            out_preview, out_cut = _preview(r[17], r[18], n)
+            out.append(
+                {
+                    "span_id": r[0],
+                    "parent_id": r[1],
+                    "name": r[2],
+                    "kind": r[3],
+                    "status": r[4],
+                    "level": r[5],
+                    "start": r[6],
+                    "end": r[7],
+                    "duration_ms": r[8],
+                    "ttft_ms": r[9],
+                    "model": r[10],
+                    "input_tokens": r[11],
+                    "output_tokens": r[12],
+                    "cost_usd": r[13],
+                    "error": r[14],
+                    "input_preview": in_preview,
+                    "output_preview": out_preview,
+                    "input_truncated": in_cut,
+                    "output_truncated": out_cut,
+                }
+            )
+        return out, total
+
     def _trace_from_row(self, row: Sequence[Any]) -> Trace:
         d = dict(zip(self._TRACE_COLS, row, strict=True))
         return Trace(
@@ -299,6 +365,16 @@ class SpansMixin(StoreBase):
         found = self.query_traces({"trace_id": trace_id}, limit=1)
         return found[0] if found else None
 
+    def get_trace_head(self, trace_id: str) -> Trace | None:
+        """The trace summary without the root's input and output (left as None), which can be
+        large; for views that show them elsewhere."""
+        cols = ", ".join("NULL" if c in ("input", "output") else c for c in self._TRACE_COLS)
+        rows = self.execute(
+            f"SELECT {cols} FROM traces WHERE project_id = ? AND trace_id = ?",
+            [self.project_id, trace_id],
+        )
+        return self._trace_from_row(rows[0]) if rows else None
+
     def delete_before(self, cutoff: float) -> int:
         """Retention: delete spans, traces and trace scores that started before ``cutoff``."""
         with self.tx() as cur:
@@ -321,3 +397,23 @@ class SpansMixin(StoreBase):
                 (self.project_id, cutoff),
             )
         return int(n or 0)
+
+
+def _preview(text: str | None, length: int | None, n: int) -> tuple[str | None, bool]:
+    """``(preview, truncated)`` from the first characters of a JSON value and its full length."""
+    if text is None or length is None or n == 0:
+        return None, bool(length and n == 0)
+    if not text.startswith('"'):
+        return text[:n], length > n
+    if length - 2 <= n:  # the whole string is here
+        try:
+            return str(json.loads(text)), False
+        except ValueError:
+            return text[1:-1], False
+    head = text[1 : n + 1]
+    for trim in range(7):  # the cut may fall inside an escape such as \n or \u00e9
+        try:
+            return str(json.loads('"' + head[: len(head) - trim] + '"')), True
+        except ValueError:
+            continue
+    return head, True

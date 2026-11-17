@@ -144,6 +144,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .tree-row:hover { background: var(--panel-2); }
 .tree-row.selected { background: var(--accent-soft); }
 .tree-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-scroll { max-height: 75vh; overflow-y: auto; contain: strict; }
 .bar-track { position: relative; height: 8px; background: var(--panel-2); border-radius: 4px; }
 .bar { position: absolute; top: 0; height: 8px; border-radius: 4px; background: var(--chart-1); min-width: 2px; }
 .bar.error { background: var(--bad); }

@@ -3,6 +3,10 @@
 The span routes parse their bodies by hand instead of through pydantic: validating every span
 with pydantic on the ingestion path would add latency for no gain, since ``Span.from_dict`` already
 ignores unknown fields. The request schema is still published (``IngestRequest``).
+
+Only reading the body happens on the event loop. Decoding, validation, pricing, redaction and the
+store write run in the thread pool, so a large batch or a slow database never stalls other
+requests (``/api/health`` included).
 """
 
 from __future__ import annotations
@@ -13,6 +17,7 @@ import re
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from starlette.concurrency import run_in_threadpool
 
 from tirkit import pricing
 from tirkit.media import LocalMediaStore, extract_media
@@ -99,6 +104,11 @@ async def ingest(
     store: SQLStore = Depends(app_store),
 ) -> Response:
     body = await read_body(request, settings.max_ingest_bytes)
+    n = await run_in_threadpool(_ingest_json, request, body, pid, store)
+    return json_response({"accepted": n})
+
+
+def _ingest_json(request: Request, body: bytes, pid: str, store: SQLStore) -> int:
     try:
         data = json.loads(body)
         spans = [Span.from_dict(d) for d in data.get("spans", [])]
@@ -106,7 +116,7 @@ async def ingest(
         raise HTTPException(400, f"invalid payload: {exc}") from exc
     store.for_project(pid).save_spans(_prepare(request, spans, pid))
     count_spans(request, "spans", len(spans))
-    return json_response({"accepted": len(spans)})
+    return len(spans)
 
 
 @router.post(
@@ -125,18 +135,22 @@ async def otlp_traces(
     store: SQLStore = Depends(app_store),
 ) -> Response:
     """OpenTelemetry exporters post here (``OTEL_EXPORTER_OTLP_ENDPOINT=<server>``)."""
-    from tirkit.otel import decode_request
-
     body = await read_body(request, settings.max_ingest_bytes)
     ctype = request.headers.get("content-type", "application/x-protobuf")
+    await run_in_threadpool(_ingest_otlp, request, body, ctype, pid, store)
+    if "json" in ctype:
+        return Response("{}", media_type="application/json")
+    return Response(b"", media_type="application/x-protobuf")
+
+
+def _ingest_otlp(request: Request, body: bytes, ctype: str, pid: str, store: SQLStore) -> None:
+    from tirkit.otel import decode_request
+
     try:
         spans = decode_request(body, ctype)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(400, f"invalid OTLP payload: {exc}") from exc
     save_otlp_spans(request, pid, spans)
-    if "json" in ctype:
-        return Response("{}", media_type="application/json")
-    return Response(b"", media_type="application/x-protobuf")
 
 
 @router.put(
@@ -156,12 +170,19 @@ async def put_media(
     if not _SHA.match(sha256):
         raise HTTPException(400, "bad hash")
     data = await read_body(request, settings.max_media_bytes)
+    mime = request.headers.get("content-type") or "application/octet-stream"
+    await run_in_threadpool(_store_media, data, sha256, mime, pid, store, media)
+    return json_response({"sha256": sha256, "size": len(data)}, 201)
+
+
+def _store_media(
+    data: bytes, sha256: str, mime: str, pid: str, store: SQLStore, media: LocalMediaStore
+) -> None:
+    """Hashing and writing a large upload happen off the event loop."""
     if hashlib.sha256(data).hexdigest() != sha256:
         raise HTTPException(400, "content does not match hash")
-    mime = request.headers.get("content-type") or "application/octet-stream"
     media.put(data, mime)
     store.for_project(pid).record_media(sha256, mime, len(data))
-    return json_response({"sha256": sha256, "size": len(data)}, 201)
 
 
 MEDIA_RESPONSE: dict[int | str, dict[str, Any]] = {

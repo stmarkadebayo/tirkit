@@ -1436,6 +1436,7 @@
           "traces"
         ],
         "summary": "Get Trace",
+        "description": "The trace, its scores and a light span tree (``TraceDetail``). Inputs and outputs are cut\nto ``preview`` characters, less on big pages (all previews of a page share a budget; the\nresponse says how many characters each got); get one full span from ``.../spans/{span_id}``.\nWith ``full=1`` every span comes in full instead (``TraceDetailFull``).",
         "operationId": "get_trace_api_projects__project_id__traces__trace_id__get",
         "parameters": [
           {
@@ -1455,6 +1456,60 @@
               "type": "string",
               "title": "Project Id"
             }
+          },
+          {
+            "name": "full",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "1 or true: every span in full (old shape)",
+              "title": "Full"
+            },
+            "description": "1 or true: every span in full (old shape)"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Spans per page, 1 to 50000",
+              "default": 10000,
+              "title": "Limit"
+            },
+            "description": "Spans per page, 1 to 50000"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "First span of the page (oldest first)",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "First span of the page (oldest first)"
+          },
+          {
+            "name": "preview",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "description": "Preview characters, 0 to 20000",
+              "default": 2000,
+              "title": "Preview"
+            },
+            "description": "Preview characters, 0 to 20000"
           }
         ],
         "responses": {
@@ -1463,7 +1518,76 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TraceDetail"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/TraceDetail"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TraceDetailFull"
+                    }
+                  ],
+                  "title": "Response Get Trace Api Projects  Project Id  Traces  Trace Id  Get"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client error: {\"detail\": \"...\"}",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/traces/{trace_id}/spans/{span_id}": {
+      "get": {
+        "tags": [
+          "traces"
+        ],
+        "summary": "Get Span",
+        "description": "One span in full: input, output, parameters and attributes.",
+        "operationId": "get_span_api_projects__project_id__traces__trace_id__spans__span_id__get",
+        "parameters": [
+          {
+            "name": "trace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trace Id"
+            }
+          },
+          {
+            "name": "span_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Span Id"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Span"
                 }
               }
             }
@@ -9260,6 +9384,188 @@
         ],
         "title": "SpanList"
       },
+      "SpanSummary": {
+        "properties": {
+          "span_id": {
+            "type": "string",
+            "title": "Span Id"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "start": {
+            "type": "number",
+            "title": "Start"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "ttft_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttft Ms"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Usd"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "input_preview": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Preview"
+          },
+          "output_preview": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Preview"
+          },
+          "input_truncated": {
+            "type": "boolean",
+            "title": "Input Truncated"
+          },
+          "output_truncated": {
+            "type": "boolean",
+            "title": "Output Truncated"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "span_id",
+          "parent_id",
+          "name",
+          "kind",
+          "status",
+          "level",
+          "start",
+          "end",
+          "duration_ms",
+          "ttft_ms",
+          "model",
+          "input_tokens",
+          "output_tokens",
+          "cost_usd",
+          "error",
+          "input_preview",
+          "output_preview",
+          "input_truncated",
+          "output_truncated"
+        ],
+        "title": "SpanSummary",
+        "description": "A span in the light trace view: structure, timings, tokens, cost and short previews.\n``*_preview`` is the start of the input or output (strings as text, anything else as JSON\ntext); fetch the full span from ``GET .../traces/{trace_id}/spans/{span_id}``."
+      },
       "ToggleEvaluatorRequest": {
         "properties": {
           "active": {
@@ -9437,6 +9743,69 @@
       "TraceDetail": {
         "properties": {
           "trace": {
+            "$ref": "#/components/schemas/TraceHead"
+          },
+          "spans": {
+            "items": {
+              "$ref": "#/components/schemas/SpanSummary"
+            },
+            "type": "array",
+            "title": "Spans"
+          },
+          "scores": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreRow"
+            },
+            "type": "array",
+            "title": "Scores"
+          },
+          "total_spans": {
+            "type": "integer",
+            "title": "Total Spans"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "omitted": {
+            "type": "integer",
+            "title": "Omitted"
+          },
+          "next_offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Offset"
+          },
+          "preview": {
+            "type": "integer",
+            "title": "Preview",
+            "description": "Characters of input and output preview each span got"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace",
+          "spans",
+          "scores",
+          "total_spans",
+          "offset",
+          "omitted",
+          "next_offset",
+          "preview"
+        ],
+        "title": "TraceDetail",
+        "description": "A trace with a light span tree (one page of spans, oldest first). ``omitted`` spans of\nthe trace come after this page; ask for them with ``offset=next_offset``."
+      },
+      "TraceDetailFull": {
+        "properties": {
+          "trace": {
             "$ref": "#/components/schemas/Trace"
           },
           "spans": {
@@ -9461,7 +9830,161 @@
           "spans",
           "scores"
         ],
-        "title": "TraceDetail"
+        "title": "TraceDetailFull",
+        "description": "The trace with every span in full (``?full=1``; the shape before the light view)."
+      },
+      "TraceHead": {
+        "properties": {
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "n_spans": {
+            "type": "integer",
+            "title": "N Spans"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Usd"
+          },
+          "has_error": {
+            "type": "boolean",
+            "title": "Has Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "trace_id",
+          "name",
+          "session_id",
+          "user_id",
+          "release",
+          "tags",
+          "start",
+          "end",
+          "duration_ms",
+          "n_spans",
+          "input_tokens",
+          "output_tokens",
+          "cost_usd",
+          "has_error"
+        ],
+        "title": "TraceHead",
+        "description": "A trace summary without the root's input and output (see the root span's previews)."
       },
       "TraceList": {
         "properties": {

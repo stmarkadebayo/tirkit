@@ -14,6 +14,10 @@ All notable changes to Tirkit are recorded here. The format follows
 - Repository layout: `SPEC.md` and `PLAN.md` moved to `docs/`; contributor and policy files (`CONTRIBUTING.md`, `CLA.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`) moved to `.github/`; `benchmarks/`, `experiments/` and `evals/` moved under `research/`; tool caches and the built docs site go to `.cache/`.
 - `tirkit.otel` is a package (`tirkit.otel.mapping` holds the attribute tables); its public functions are unchanged. Instrumentation wrappers can now patch module-level functions and positional arguments (internal `CallSpec` options).
 - Model price lookup also tries `mistral/`, `cohere/` and `vertex_ai/` prefixed names and strips Bedrock region prefixes (`us.`, `eu.`...).
+- `GET /api/projects/{id}/traces/{trace_id}` now returns a light span tree (ids, parents, timings, tokens, cost, short previews, paged with an explicit `omitted` count); use `?full=1` for the previous shape or `.../spans/{span_id}` for one full span.
+- Ingestion decodes, validates and writes off the event loop, so `/api/health` stays fast while a slow batch is written.
+- SDK retries honour `Retry-After`, use jittered exponential backoff and stop after 30 s (Python and TypeScript); the Python exporter defaults to 5 retries instead of 3.
+- The trace page draws only the rows in view and shows every span of a trace, including spans in parent cycles, self-parents and orphans (previously these disappeared); the span tree is built without quadratic copying.
 
 ### Added
 - Complete OpenAPI schema: every route has request and response models; checked in as `docs/api/openapi.json` and kept current by CI.
@@ -76,3 +80,8 @@ All notable changes to Tirkit are recorded here. The format follows
 ### Fixed
 - Alerts created through the API without `window_s` showed "NaN min" in the UI.
 - Several server or worker processes starting together on a fresh Postgres database could fail while creating the schema; migrations now hold an advisory lock.
+- Fork-safe exporter, SQLite store and HTTP client: processes forked by Gunicorn, Celery or `multiprocessing` keep exporting their own spans, without deadlocks.
+- `GET /api/projects/{id}/traces/{trace_id}/spans/{span_id}` returns one span in full.
+- Tests that re-sending a batch (JSON, OTLP, reversed or split) leaves span and trace counts unchanged.
+- Vitest for the web UI (`npm test` in `web/`).
+- `research/benchmarks/bench_query.py` runs on SQLite or Postgres at any size (10M spans supported), seeds a 10,000-span trace and times trace opens.

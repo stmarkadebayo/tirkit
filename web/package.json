@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "api": "node scripts/gen-api.mjs",
-    "api:check": "node scripts/gen-api.mjs && git diff --exit-code -- src/api/schema.ts"
+    "api:check": "node scripts/gen-api.mjs && git diff --exit-code -- src/api/schema.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tanstack/react-query": "5.62.0",
@@ -24,6 +25,7 @@
     "@vitejs/plugin-react": "4.3.4",
     "openapi-typescript": "7.13.0",
     "typescript": "5.7.2",
-    "vite": "5.4.11"
+    "vite": "5.4.11",
+    "vitest": "2.1.9"
   }
 }

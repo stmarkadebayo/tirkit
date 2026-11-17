@@ -57,6 +57,10 @@ export interface InitOptions {
   batchSize?: number;
   flushIntervalMs?: number;
   maxQueue?: number;
+  /** Attempts after the first for a failed batch (default 5). */
+  maxRetries?: number;
+  /** Give up on a batch once retrying would take longer than this (default 30,000 ms). */
+  maxRetryMs?: number;
   /** Replace the HTTP transport (tests). */
   fetch?: typeof fetch;
 }
@@ -70,6 +74,37 @@ const storage = new AsyncLocalStorage<Ctx>();
 const hex = (n: number) => randomBytes(n).toString("hex");
 const now = () => Date.now() / 1000;
 
+// Worth another attempt: rate limited, timed out, or the server or a proxy is briefly unavailable.
+// Ingest is an idempotent upsert, so re-sending a batch is safe.
+const RETRY_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
+
+/** Seconds from a Retry-After header (delay-seconds or an HTTP date), or null. */
+export function parseRetryAfter(value: string | null | undefined): number | null {
+  if (value == null) return null;
+  const v = value.trim();
+  if (/^\d+$/.test(v)) return Number(v);
+  const when = Date.parse(v);
+  if (Number.isNaN(when)) return null;
+  return Math.max(0, (when - Date.now()) / 1000);
+}
+
+/** Exponential backoff with full jitter, in ms: uniform in [0, min(cap, base * 2^attempt)]. */
+export function backoffDelayMs(attempt: number, baseMs = 200, capMs = 5000, random = Math.random): number {
+  return random() * Math.min(capMs, baseMs * 2 ** Math.min(attempt, 30));
+}
+
+class ExportError extends Error {
+  constructor(
+    message: string,
+    public retryable: boolean,
+    public retryAfterS: number | null = null,
+  ) {
+    super(message);
+  }
+}
+
+type ExporterOpts = Required<Pick<InitOptions, "batchSize" | "flushIntervalMs" | "maxQueue" | "maxRetries" | "maxRetryMs">>;
+
 class Exporter {
   queue: SpanData[] = [];
   dropped = 0;
@@ -81,7 +116,7 @@ class Exporter {
   constructor(
     private host: string,
     private auth: string,
-    private opts: Required<Pick<InitOptions, "batchSize" | "flushIntervalMs" | "maxQueue">>,
+    private opts: ExporterOpts,
     private fetchImpl: typeof fetch,
   ) {
     this.timer = setInterval(() => void this.flush(), opts.flushIntervalMs);
@@ -101,30 +136,49 @@ class Exporter {
     this.inflight = this.inflight.then(async () => {
       while (this.queue.length) {
         const batch = this.queue.splice(0, this.opts.batchSize);
-        let delay = 200;
-        for (let attempt = 0; attempt < 4; attempt++) {
-          try {
-            const res = await this.fetchImpl(`${this.host}/api/v1/ingest`, {
-              method: "POST",
-              headers: { "content-type": "application/json", authorization: this.auth },
-              body: safeStringify({ spans: batch }),
-            });
-            if (!res.ok) throw new Error(`ingest returned ${res.status}`);
-            this.exported += batch.length;
-            break;
-          } catch (err) {
-            if (attempt === 3) {
-              this.failed += batch.length;
-              console.warn(`tirkit: failed to export ${batch.length} spans: ${err}`);
-            } else {
-              await new Promise((r) => setTimeout(r, delay));
-              delay *= 2;
-            }
-          }
-        }
+        await this.send(batch);
       }
     });
     return this.inflight;
+  }
+
+  /** One batch with retries: the server's Retry-After wins over jittered backoff; 4xx other than
+   * 408/429 fails at once; total retry time is bounded by maxRetryMs. */
+  private async send(batch: SpanData[]) {
+    const body = safeStringify({ spans: batch });
+    const deadline = Date.now() + this.opts.maxRetryMs;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        let res: Response;
+        try {
+          res = await this.fetchImpl(`${this.host}/api/v1/ingest`, {
+            method: "POST",
+            headers: { "content-type": "application/json", authorization: this.auth },
+            body,
+          });
+        } catch (err) {
+          throw new ExportError(`ingest failed: ${err}`, true);
+        }
+        if (!res.ok) {
+          throw new ExportError(`ingest returned ${res.status}`, RETRY_STATUSES.has(res.status), parseRetryAfter(res.headers.get("retry-after")));
+        }
+        this.exported += batch.length;
+        return;
+      } catch (err) {
+        const e = err instanceof ExportError ? err : new ExportError(String(err), true);
+        let wait: number | null = null;
+        if (e.retryable && attempt < this.opts.maxRetries) {
+          wait = e.retryAfterS !== null ? e.retryAfterS * 1000 + Math.random() * Math.min(1000, 100 * e.retryAfterS) : backoffDelayMs(attempt);
+          if (Date.now() + wait > deadline) wait = null;
+        }
+        if (wait === null) {
+          this.failed += batch.length;
+          console.warn(`tirkit: failed to export ${batch.length} spans: ${e.message}`);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, wait));
+      }
+    }
   }
 
   async shutdown() {
@@ -147,7 +201,13 @@ export function init(opts: InitOptions = {}) {
     host,
     auth,
     fetch: f,
-    exporter: new Exporter(host, auth, { batchSize: opts.batchSize ?? 100, flushIntervalMs: opts.flushIntervalMs ?? 500, maxQueue: opts.maxQueue ?? 10_000 }, f),
+    exporter: new Exporter(host, auth, {
+        batchSize: opts.batchSize ?? 100,
+        flushIntervalMs: opts.flushIntervalMs ?? 500,
+        maxQueue: opts.maxQueue ?? 10_000,
+        maxRetries: opts.maxRetries ?? 5,
+        maxRetryMs: opts.maxRetryMs ?? 30_000,
+      }, f),
   };
   return client;
 }

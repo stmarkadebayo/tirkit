@@ -1,49 +1,49 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, projectPath, type Json, type Score, type Span, type TraceDetail } from "../api";
+import { api, projectPath, type Json, type Score, type Span, type SpanSummary, type TraceDetail } from "../api";
 import { usePid, useRole } from "../hooks";
 import { Content, JsonBlock } from "../components/Content";
 import { AddToDataset } from "../components/AddToDataset";
 import { fmtCost, fmtMs, fmtNum, fmtTime, kindLabel } from "../format";
+import { buildTree, type TreeNode } from "./traceTree";
 
-interface Node {
-  span: Span;
-  depth: number;
-}
+const PAGE = 10_000; // spans per request; the server marks the rest as omitted
+const ROW_H = 36; // fixed row height: only the rows in view are rendered
+const OVERSCAN = 12;
 
-function buildTree(spans: Span[]): Node[] {
-  const children = new Map<string | null, Span[]>();
-  const ids = new Set(spans.map((s) => s.span_id));
-  for (const s of spans) {
-    const parent = s.parent_id && ids.has(s.parent_id) ? s.parent_id : null;
-    children.set(parent, [...(children.get(parent) ?? []), s]);
-  }
-  const out: Node[] = [];
-  const walk = (parent: string | null, depth: number) => {
-    for (const s of (children.get(parent) ?? []).sort((a, b) => a.start - b.start)) {
-      out.push({ span: s, depth });
-      walk(s.span_id, depth + 1);
-    }
-  };
-  walk(null, 0);
-  return out;
-}
+const ISSUE_TITLE = {
+  orphan: "Its parent span is not in this trace",
+  "self-parent": "This span names itself as its parent",
+  cycle: "Parent links form a cycle; shown from its earliest span",
+} as const;
 
 export default function TraceView() {
   const pid = usePid();
   const { tid = "" } = useParams();
   const role = useRole();
-  const q = useQuery({ queryKey: ["trace", pid, tid], queryFn: () => api<TraceDetail>(projectPath(pid, `/traces/${tid}`)) });
+  const [limit, setLimit] = useState(PAGE);
+  const q = useQuery({
+    queryKey: ["trace", pid, tid, limit],
+    queryFn: () => api<TraceDetail>(projectPath(pid, `/traces/${tid}?limit=${limit}`)),
+    placeholderData: (prev) => prev,
+  });
   const [sel, setSel] = useState<string | null>(null);
   const nodes = useMemo(() => buildTree(q.data?.spans ?? []), [q.data]);
+  const range = useMemo(() => {
+    let t0 = Infinity;
+    let t1 = -Infinity;
+    for (const { span: s } of nodes) {
+      if (s.start < t0) t0 = s.start;
+      const e = s.end ?? s.start;
+      if (e > t1) t1 = e;
+    }
+    return { t0, total: Math.max(t1 - t0, 1e-6) };
+  }, [nodes]);
+  const selected = (sel ? nodes.find((n) => n.span.span_id === sel)?.span : undefined) ?? nodes[0]?.span;
   if (q.isLoading) return <div className="muted">Loading…</div>;
   if (q.error || !q.data) return <div className="error-box">{String(q.error ?? "not found")}</div>;
-  const { trace, scores } = q.data;
-  const t0 = Math.min(...nodes.map((n) => n.span.start));
-  const t1 = Math.max(...nodes.map((n) => n.span.end ?? n.span.start));
-  const total = Math.max(t1 - t0, 1e-6);
-  const selected = nodes.find((n) => n.span.span_id === sel)?.span ?? nodes[0]?.span;
+  const { trace, scores, omitted, total_spans } = q.data;
 
   return (
     <div>
@@ -74,31 +74,101 @@ export default function TraceView() {
       </div>
       <div className="split">
         <div className="panel tree" style={{ padding: 8 }}>
-          {nodes.map(({ span: s, depth }) => {
-            const left = ((s.start - t0) / total) * 100;
-            const width = Math.max((((s.end ?? s.start) - s.start) / total) * 100, 0.5);
-            return (
-              <div key={s.span_id} className={`tree-row ${selected?.span_id === s.span_id ? "selected" : ""}`} onClick={() => setSel(s.span_id)}>
-                <div className="tree-name" style={{ paddingLeft: depth * 14 }}>
-                  <span className="kind" title={s.kind}>{kindLabel(s.kind)}</span>
-                  {s.name}
-                  {s.status === "error" && <span className="badge bad" style={{ marginLeft: 6 }}>error</span>}
-                </div>
-                <div>
-                  <div className="bar-track">
-                    <div className={`bar ${s.status === "error" ? "error" : ""}`} style={{ left: `${left}%`, width: `${width}%` }} />
-                  </div>
-                  <div className="small muted" style={{ textAlign: "right" }}>{fmtMs(s.end ? (s.end - s.start) * 1000 : null)}</div>
-                </div>
-              </div>
-            );
-          })}
+          <SpanTree nodes={nodes} t0={range.t0} total={range.total} selectedId={selected?.span_id} onSelect={setSel} />
+          {omitted > 0 && (
+            <div className="row small muted" style={{ padding: "8px 6px" }}>
+              <span>
+                Showing {fmtNum(nodes.length)} of {fmtNum(total_spans)} spans; {fmtNum(omitted)} omitted.
+              </span>
+              <button disabled={q.isFetching} onClick={() => setLimit(Math.min(total_spans, limit + PAGE))}>
+                Show {fmtNum(Math.min(omitted, PAGE))} more
+              </button>
+            </div>
+          )}
         </div>
         <div className="grid">
-          {selected && <SpanPanel span={selected} pid={pid} />}
+          {selected && <SelectedSpan summary={selected} pid={pid} tid={tid} />}
           <ScoresPanel scores={scores} traceId={trace.trace_id} spanId={selected?.span_id ?? null} canEdit={role !== "viewer"} />
         </div>
       </div>
+    </div>
+  );
+}
+
+/** The span tree, windowed: rows have a fixed height and only those in view are in the DOM. */
+function SpanTree({
+  nodes,
+  t0,
+  total,
+  selectedId,
+  onSelect,
+}: {
+  nodes: TreeNode<SpanSummary>[];
+  t0: number;
+  total: number;
+  selectedId: string | undefined;
+  onSelect: (id: string) => void;
+}) {
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewH, setViewH] = useState(800);
+  const first = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN);
+  const last = Math.min(nodes.length, Math.ceil((scrollTop + viewH) / ROW_H) + OVERSCAN);
+  return (
+    <div
+      className="tree-scroll"
+      style={{ height: nodes.length * ROW_H }}
+      ref={(el) => {
+        if (el && el.clientHeight && el.clientHeight !== viewH) setViewH(el.clientHeight);
+      }}
+      onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
+    >
+      <div style={{ height: nodes.length * ROW_H, position: "relative" }}>
+        {nodes.slice(first, last).map(({ span: s, depth, issue }, i) => {
+          const left = ((s.start - t0) / total) * 100;
+          const width = Math.max((((s.end ?? s.start) - s.start) / total) * 100, 0.5);
+          return (
+            <div
+              key={s.span_id}
+              className={`tree-row ${selectedId === s.span_id ? "selected" : ""}`}
+              style={{ position: "absolute", top: (first + i) * ROW_H, left: 0, right: 0, height: ROW_H }}
+              onClick={() => onSelect(s.span_id)}
+            >
+              <div className="tree-name" style={{ paddingLeft: Math.min(depth, 40) * 14 }} title={s.name}>
+                <span className="kind" title={s.kind}>{kindLabel(s.kind)}</span>
+                {s.name}
+                {s.status === "error" && <span className="badge bad" style={{ marginLeft: 6 }}>error</span>}
+                {issue && <span className="badge warn" style={{ marginLeft: 6 }} title={ISSUE_TITLE[issue]}>{issue}</span>}
+              </div>
+              <div>
+                <div className="bar-track">
+                  <div className={`bar ${s.status === "error" ? "error" : ""}`} style={{ left: `${left}%`, width: `${width}%` }} />
+                </div>
+                <div className="small muted" style={{ textAlign: "right" }}>{fmtMs(s.end ? (s.end - s.start) * 1000 : null)}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Loads the selected span in full; shows its preview while it loads. */
+function SelectedSpan({ summary, pid, tid }: { summary: SpanSummary; pid: string; tid: string }) {
+  const q = useQuery({
+    queryKey: ["span", pid, tid, summary.span_id],
+    queryFn: () => api<Span>(projectPath(pid, `/traces/${tid}/spans/${summary.span_id}`)),
+  });
+  if (q.data) return <SpanPanel span={q.data} pid={pid} />;
+  return (
+    <div className="panel">
+      <h2 style={{ margin: 0 }}>{summary.name}</h2>
+      {q.error ? <div className="error-box">{String(q.error)}</div> : <div className="small muted">Loading span…</div>}
+      {summary.error && <div className="error-box" style={{ marginTop: 8 }}>{summary.error}</div>}
+      <h3>Input</h3>
+      <pre className="json">{summary.input_preview ?? "—"}{summary.input_truncated ? " …" : ""}</pre>
+      <h3>Output</h3>
+      <pre className="json">{summary.output_preview ?? "—"}{summary.output_truncated ? " …" : ""}</pre>
     </div>
   );
 }
