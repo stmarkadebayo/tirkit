@@ -1,0 +1,7 @@
+Tirkit
+Copyright 2026 St. Mark Adebayo
+
+This product includes software developed by St. Mark Adebayo and the Tirkit contributors.
+
+Model price data in src/tirkit/data/prices.json is derived from LiteLLM
+(https://github.com/BerriAI/litellm), Copyright (c) 2023 Berri AI, MIT licence.
