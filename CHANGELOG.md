@@ -59,6 +59,11 @@ All notable changes to Tirkit are recorded here. The format follows
 - Apache-2.0 licence, NOTICE, Contributor License Agreement and CLA bot.
 - Contributing guide, Code of Conduct, security policy, issue and pull-request templates.
 - Secret scanning (gitleaks) in CI.
+- `tirkit backup` and `tirkit restore`: SQLite online backup or Postgres `pg_dump` (custom format, in an exported snapshot), media files listed and checked by SHA-256, and a manifest of row counts and content hashes that `restore` verifies. `scripts/restore_drill.py` (backup, wipe, restore, compare) runs in CI weekly.
+- Prometheus metrics at `/metrics`: ingest requests by route, outcome and reason, spans accepted, ingest latency, ingest buffer depth, Postgres pool usage, job queue depth and age, judge spend. Optional bearer token (`TIRKIT_METRICS_TOKEN`); `TIRKIT_METRICS=0` turns them off. Counters are shared across `tirkit serve --workers N` processes.
+- Helm chart (`deploy/helm/tirkit`): server and worker Deployments, optional Postgres, Secret, probes on `/api/health`, HPA, PodDisruptionBudget, non-root pods with a read-only root filesystem. CI runs `helm lint` and `kubeconform`.
+- Operations guide (`docs/site/operations.md`): backups and the restore drill, monitoring, upgrades, retention, Kubernetes and measured sizing.
 
 ### Fixed
 - Alerts created through the API without `window_s` showed "NaN min" in the UI.
+- Several server or worker processes starting together on a fresh Postgres database could fail while creating the schema; migrations now hold an advisory lock.
