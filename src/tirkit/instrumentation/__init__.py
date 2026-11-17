@@ -16,6 +16,7 @@ def _registry() -> dict[str, Callable[[], bool]]:
         litellm,
         mistral,
         openai,
+        vertex,
     )
 
     def transformers() -> bool:
@@ -31,6 +32,7 @@ def _registry() -> dict[str, Callable[[], bool]]:
         "gemini": gemini.instrument,
         "litellm": litellm.instrument,
         "mistral": mistral.instrument,
+        "vertex": vertex.instrument,
         "transformers": transformers,
     }
 
