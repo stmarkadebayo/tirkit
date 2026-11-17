@@ -45,6 +45,7 @@ def _registry() -> dict[str, Callable[[], bool]]:
         "openai_agents": integration("openai_agents"),
         "dspy": integration("dspy"),
         "llamaindex": integration("llamaindex"),
+        "crewai": integration("crewai"),
     }
 
 
