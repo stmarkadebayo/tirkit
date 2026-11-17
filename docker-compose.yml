@@ -1,0 +1,58 @@
+# Self-hosted Tirkit: `docker compose up -d`, then open http://localhost:8000 and create the admin.
+# Change POSTGRES_PASSWORD (in a .env file next to this one) before exposing the server.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tirkit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tirkit}
+      POSTGRES_DB: tirkit
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tirkit"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+
+  tirkit:
+    build: .
+    image: tirkit:local
+    environment:
+      TIRKIT_DATABASE_URL: postgresql://tirkit:${POSTGRES_PASSWORD:-tirkit}@db:5432/tirkit
+      # Plain-HTTP local use. Remove when serving over HTTPS behind a proxy.
+      TIRKIT_INSECURE_COOKIES: ${TIRKIT_INSECURE_COOKIES:-1}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      JUDGE_MODEL: ${JUDGE_MODEL:-}
+      TIRKIT_EMBEDDED_WORKER: "0"
+    ports:
+      - "${TIRKIT_PORT:-8000}:8000"
+    volumes:
+      - media:/data/media
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    image: tirkit:local
+    command: ["tirkit", "worker"]
+    environment:
+      TIRKIT_DATABASE_URL: postgresql://tirkit:${POSTGRES_PASSWORD:-tirkit}@db:5432/tirkit
+      TIRKIT_MEDIA_DIR: /data/media
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      JUDGE_MODEL: ${JUDGE_MODEL:-}
+    volumes:
+      - media:/data/media
+    depends_on:
+      tirkit:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  media:
