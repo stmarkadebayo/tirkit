@@ -102,6 +102,9 @@ class Exporter {
       while (this.queue.length) {
         const batch = this.queue.splice(0, this.opts.batchSize);
         let delay = 200;
+        // A 429 is the server asking us to slow down: wait as long as Retry-After says (up to
+        // 60 s in total for this batch) without using up the normal retries.
+        const patience = Date.now() + 60_000;
         for (let attempt = 0; attempt < 4; attempt++) {
           try {
             const res = await this.fetchImpl(`${this.host}/api/v1/ingest`, {
@@ -109,6 +112,15 @@ class Exporter {
               headers: { "content-type": "application/json", authorization: this.auth },
               body: safeStringify({ spans: batch }),
             });
+            if (res.status === 429) {
+              const asked = Number(res.headers.get("retry-after"));
+              const wait = Math.min(Number.isFinite(asked) && asked >= 0 ? asked : 1, 30) * 1000 * (1 + 0.1 * Math.random());
+              if (Date.now() + wait <= patience) {
+                await new Promise((r) => setTimeout(r, wait));
+                attempt--;
+                continue;
+              }
+            }
             if (!res.ok) throw new Error(`ingest returned ${res.status}`);
             this.exported += batch.length;
             break;

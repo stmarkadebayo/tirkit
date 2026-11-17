@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import atexit
 import logging
+import random
 import threading
 import time
 import weakref
@@ -19,6 +20,8 @@ from tirkit.media import MediaStore, extract_media
 from tirkit.tracing import Span
 
 log = logging.getLogger("tirkit")
+
+MAX_RATE_LIMIT_WAIT_S = 60.0  # longest total wait on 429 responses for one batch
 
 
 class BatchTarget(Protocol):
@@ -50,6 +53,7 @@ class BatchExporter:
         self.dropped = 0
         self.exported = 0
         self.failed = 0
+        self.throttled = 0  # times a batch waited for a 429 Retry-After
         self._queue: deque[Span] = deque()
         self._lock = threading.Lock()
         self._wake = threading.Event()
@@ -95,16 +99,28 @@ class BatchExporter:
     def _write(self, batch: list[Span]) -> None:
         batch = [self._prepare(s) for s in batch]
         delay = 0.2
-        for attempt in range(self.max_retries + 1):
+        # A 429 is the server asking us to slow down, not a failed batch: wait as long as it says
+        # (up to MAX_RATE_LIMIT_WAIT_S in total) without using up the normal retries.
+        patience = time.monotonic() + MAX_RATE_LIMIT_WAIT_S
+        attempt = 0
+        while True:
             try:
                 self.target.save_spans(batch)
                 self.exported += len(batch)
                 return
-            except Exception:  # noqa: BLE001
-                if attempt == self.max_retries:
+            except Exception as exc:  # noqa: BLE001
+                asked = getattr(exc, "retry_after", None)
+                if asked is not None:
+                    wait = min(float(asked), 30.0) * (1 + 0.1 * random.random())
+                    if time.monotonic() + wait <= patience:
+                        self.throttled += 1
+                        time.sleep(wait)
+                        continue
+                if attempt >= self.max_retries or asked is not None:
                     self.failed += len(batch)
                     log.warning("tirkit: failed to export %d spans", len(batch), exc_info=True)
                     return
+                attempt += 1
                 time.sleep(delay)
                 delay = min(delay * 2, 5.0)
 
@@ -144,6 +160,7 @@ class BatchExporter:
             "exported": self.exported,
             "dropped": self.dropped,
             "failed": self.failed,
+            "throttled": self.throttled,
         }
 
 

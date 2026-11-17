@@ -11,6 +11,21 @@ from tirkit.serialize import dumps
 from tirkit.types import Dataset, Example, RunResult, Span, Trace
 
 
+class RateLimited(Exception):
+    """The server answered 429; ``retry_after`` is how many seconds it asked us to wait."""
+
+    def __init__(self, retry_after: float, detail: str = "") -> None:
+        super().__init__(f"rate limited, retry after {retry_after:g}s {detail}".strip())
+        self.retry_after = retry_after
+
+
+def _retry_after(response: Any) -> float:
+    try:
+        return max(0.0, float(response.headers.get("retry-after", 1)))
+    except (TypeError, ValueError):
+        return 1.0
+
+
 class HttpClient:
     """Talks to a Tirkit server with a project API key (HTTP Basic: public key, secret key)."""
 
@@ -27,6 +42,8 @@ class HttpClient:
         r = self.client.post(
             "/api/v1/ingest", content=body, headers={"content-type": "application/json"}
         )
+        if r.status_code == 429:
+            raise RateLimited(_retry_after(r))
         r.raise_for_status()
 
     def save_span(self, span: Span) -> None:

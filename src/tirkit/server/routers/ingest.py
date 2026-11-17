@@ -24,6 +24,7 @@ from tirkit.server.deps import (
     app_media,
     app_settings,
     app_store,
+    basic_credentials,
     json_response,
     key_project,
     project_ctx,
@@ -31,6 +32,7 @@ from tirkit.server.deps import (
     read_body,
 )
 from tirkit.server.openapi import binary_body, json_body
+from tirkit.server.security import enforce_ingest_limit
 from tirkit.server.settings import Settings
 from tirkit.store import SQLStore
 from tirkit.types import Span
@@ -41,7 +43,9 @@ _SHA = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _prepare(request: Request, spans: list[Span], pid: str) -> list[Span]:
-    """Validate ids, fill in cost from prices and apply the project's redaction setting."""
+    """Check the key's rate limit, validate ids, fill in cost and apply the redaction setting."""
+    creds = basic_credentials(request)
+    enforce_ingest_limit(request, creds[0] if creds else None, len(spans))
     st = project_settings(request, pid)
     store = app_store(request)
     overrides = app_cache(request).get("prices", pid, store.for_project(pid).get_prices)

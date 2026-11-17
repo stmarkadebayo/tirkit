@@ -100,3 +100,16 @@ test("prompts compile and link spans; feedback posts a score", async () => {
   assert.equal(fb.body.value, 1);
   assert.equal(fb.body.source, "user_feedback");
 });
+
+test("a 429 with Retry-After is waited out, not counted as a failure", async () => {
+  let calls = 0;
+  const fetchImpl = async (url) => {
+    calls++;
+    if (calls <= 5) return new Response("{}", { status: 429, headers: { "retry-after": "0" } });
+    return new Response(JSON.stringify({ accepted: 1 }), { status: 200 });
+  };
+  tirkit.init({ host: "http://tirkit.test", publicKey: "pk", secretKey: "sk", fetch: fetchImpl, flushIntervalMs: 10_000 });
+  await tirkit.span("limited", { kind: "tool" }, async () => 1);
+  await tirkit.flush();
+  assert.equal(calls, 6); // five 429s (more than the four normal attempts), then accepted
+});
