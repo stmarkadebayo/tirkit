@@ -78,6 +78,11 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Node OpenTelemetry exporter for the OTLP parity test
+        run: npm ci --no-audit --no-fund --prefix tests/otel_node
       - name: Server, API contract and Postgres tests
         run: pytest -q -m "(server or postgres) and not acceptance"
       - name: Acceptance tests (progress meter)
