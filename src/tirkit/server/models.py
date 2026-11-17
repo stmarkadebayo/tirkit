@@ -390,6 +390,13 @@ class MetricPoint(Out):
     p50_ms: float | None = None
     p95_ms: float | None = None
     p99_ms: float | None = None
+    cached_input_tokens: int | None = None
+    reasoning_tokens: int | None = None
+    cache_hit_rate: float | None = Field(
+        None, description="Cached input tokens / input tokens; null without input tokens."
+    )
+    ttft_p50_ms: float | None = None
+    ttft_p95_ms: float | None = None
 
 
 class ScorePoint(Out):
