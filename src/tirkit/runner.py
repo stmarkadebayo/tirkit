@@ -4,72 +4,18 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-import json
 import math
 import time
-import uuid
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import asdict, dataclass, field
-from pathlib import Path
+from dataclasses import dataclass
 from typing import Any
 
 from tirkit import stats
-from tirkit.datasets import Dataset, Example
 from tirkit.scorers import Score, Scorer, higher_is_better, scorer_version
-from tirkit.serialize import to_jsonable
 from tirkit.tracing import copy_context_run, span
-
-
-@dataclass
-class RunResult:
-    dataset: str
-    dataset_version: str
-    outputs: list[Any] = field(default_factory=list)
-    scores: dict[str, list[float | None]] = field(default_factory=dict)  # scorer -> per example
-    experiment_id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
-    name: str | None = None
-    target: str | None = None
-    errors: list[str | None] = field(default_factory=list)
-    latencies_ms: list[float | None] = field(default_factory=list)
-    costs_usd: list[float | None] = field(default_factory=list)
-    trace_ids: list[str | None] = field(default_factory=list)
-    reasons: dict[str, list[str | None]] = field(default_factory=dict)
-    scorer_info: dict[str, dict[str, Any]] = field(default_factory=dict)
-    config: dict[str, Any] = field(default_factory=dict)
-    created: float = field(default_factory=time.time)
-
-    def higher_is_better(self, scorer: str) -> bool:
-        return bool(self.scorer_info.get(scorer, {}).get("higher_is_better", True))
-
-    def summary(self, *, seed: int = 0, n_resamples: int = 10_000) -> dict[str, dict[str, Any]]:
-        """Per scorer: mean, 95% CI, number scored and number failed."""
-        out: dict[str, dict[str, Any]] = {}
-        for name, values in self.scores.items():
-            ok = [v for v in values if v is not None and not math.isnan(v)]
-            row: dict[str, Any] = {"n": len(ok), "failed": len(values) - len(ok)}
-            if ok:
-                row["mean"] = stats.mean(ok)
-                row["ci"] = stats.bootstrap_ci(ok, seed=seed, n_resamples=n_resamples)
-            out[name] = row
-        return out
-
-    def to_json(self) -> dict[str, Any]:
-        data = asdict(self)
-        data["outputs"] = to_jsonable(self.outputs)
-        return data
-
-    def save_json(self, path: str | Path) -> None:
-        Path(path).write_text(json.dumps(self.to_json(), indent=1, default=str))
-
-    @classmethod
-    def from_json(cls, data: dict[str, Any]) -> RunResult:
-        known = set(cls.__dataclass_fields__)
-        return cls(**{k: v for k, v in data.items() if k in known})
-
-    @classmethod
-    def load_json(cls, path: str | Path) -> RunResult:
-        return cls.from_json(json.loads(Path(path).read_text()))
+from tirkit.types import Dataset, Example
+from tirkit.types import RunResult as RunResult
 
 
 def _call_target(target: Callable[..., Any], inp: dict[str, Any]) -> Any:

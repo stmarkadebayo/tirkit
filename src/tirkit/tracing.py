@@ -23,14 +23,13 @@ import functools
 import inspect
 import logging
 import time
-import uuid
 from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass, field
 from typing import Any, Protocol, TypeVar, overload
 
 from tirkit import pricing
 from tirkit.serialize import to_jsonable
+from tirkit.types import Span
 
 log = logging.getLogger("tirkit")
 
@@ -52,77 +51,6 @@ KINDS = frozenset(
         "evaluator",
     }
 )
-
-
-@dataclass
-class Span:
-    """One unit of work. ``start``/``end`` are Unix seconds."""
-
-    name: str
-    trace_id: str = field(default_factory=lambda: uuid.uuid4().hex)
-    span_id: str = field(default_factory=lambda: uuid.uuid4().hex[:16])
-    parent_id: str | None = None
-    start: float = field(default_factory=time.time)
-    end: float | None = None
-    kind: str = "generic"
-    status: str = "ok"  # ok | error
-    level: str = "default"  # debug | default | warning | error
-    model: str | None = None
-    model_params: dict[str, Any] = field(default_factory=dict)
-    input: Any = None
-    output: Any = None
-    usage: dict[str, float] = field(default_factory=dict)
-    cost_usd: float | None = None
-    error: str | None = None
-    # Trace-level fields, inherited by children.
-    session_id: str | None = None
-    user_id: str | None = None
-    release: str | None = None
-    tags: list[str] = field(default_factory=list)
-    prompt_version: str | None = None
-    # Latency details: time to first token / first audio byte (ms), for streams.
-    ttft_ms: float | None = None
-    attributes: dict[str, Any] = field(default_factory=dict)
-
-    @property
-    def duration_ms(self) -> float | None:
-        return None if self.end is None else (self.end - self.start) * 1000
-
-    @property
-    def input_tokens(self) -> int | None:
-        v = self.usage.get("input_tokens")
-        return None if v is None else int(v)
-
-    @property
-    def output_tokens(self) -> int | None:
-        v = self.usage.get("output_tokens")
-        return None if v is None else int(v)
-
-    @property
-    def is_root(self) -> bool:
-        return self.parent_id is None
-
-    def set_usage(self, **units: float | int | None) -> None:
-        """Record metered usage (see :mod:`tirkit.pricing` for unit names)."""
-        for k, v in units.items():
-            if v is not None:
-                self.usage[k] = float(v)
-
-    def set_attributes(self, **attrs: Any) -> None:
-        self.attributes.update(attrs)
-
-    def record_error(self, exc: BaseException | str) -> None:
-        self.status = "error"
-        self.level = "error"
-        self.error = exc if isinstance(exc, str) else f"{type(exc).__name__}: {exc}"
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> Span:
-        known = {f for f in cls.__dataclass_fields__}
-        return cls(**{k: v for k, v in data.items() if k in known})
 
 
 class SpanSink(Protocol):

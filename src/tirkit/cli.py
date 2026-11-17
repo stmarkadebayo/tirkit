@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import importlib
 import json
 import os
-import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -37,12 +35,9 @@ def _store(db: str | None) -> Any:
 def _load_target(spec: str) -> Any:
     if ":" not in spec:
         raise typer.BadParameter("target must look like module.path:function")
-    module, _, attr = spec.partition(":")
-    sys.path.insert(0, os.getcwd())
-    obj: Any = importlib.import_module(module)
-    for part in attr.split("."):
-        obj = getattr(obj, part)
-    return obj
+    from tirkit.scorer_specs import load_object
+
+    return load_object(spec)
 
 
 def _load_dataset(spec: str, store: Any) -> Any:
@@ -58,34 +53,14 @@ def _load_dataset(spec: str, store: Any) -> Any:
 
 
 def build_scorer(spec: str, store: Any = None) -> Any:
-    """Scorer from a short name: exact_match, exact_match_norm, wer, cer, json_valid,
-    contains_expected, judge:<rubric> (correctness, faithfulness, ...), or module:Class."""
-    from tirkit import scorers as sc
+    """Scorer from a short spec; see :func:`tirkit.scorer_specs.build_scorer`."""
+    from tirkit.scorer_specs import UnknownScorer
+    from tirkit.scorer_specs import build_scorer as build
 
-    if spec == "exact_match":
-        return sc.ExactMatch()
-    if spec == "exact_match_norm":
-        return sc.ExactMatch(normalise=True)
-    if spec == "wer":
-        return sc.WordErrorRate()
-    if spec == "cer":
-        return sc.CharacterErrorRate()
-    if spec == "json_valid":
-        return sc.RuleScorer([sc.rules.json_valid()], name="json_valid")
-    if spec == "contains_expected":
-
-        def contains(example: Any, output: Any) -> float:
-            return float(sc.output_text(example.expected).lower() in sc.output_text(output).lower())
-
-        return sc.FunctionScorer(contains, name="contains_expected")
-    if spec.startswith("judge:"):
-        from tirkit.judge import LLMJudge, OpenAICompatibleJudge
-
-        return LLMJudge(OpenAICompatibleJudge(), spec.split(":", 1)[1], cache=store)
-    if ":" in spec:
-        obj = _load_target(spec)
-        return obj() if isinstance(obj, type) else obj
-    raise typer.BadParameter(f"unknown scorer {spec!r}")
+    try:
+        return build(spec, store)
+    except UnknownScorer as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
 
 def _load_run(ref: str, store: Any) -> Any:

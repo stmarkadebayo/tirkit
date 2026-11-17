@@ -38,6 +38,7 @@ dev = [
     "pytest>=8",
     "ruff>=0.6",
     "mypy>=1.10",
+    "import-linter>=2.1",
     # Provider SDKs, only to test instrumentation against the real clients.
     "openai>=2",
     "anthropic>=1",

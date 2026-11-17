@@ -8,7 +8,7 @@ from typing import Any
 
 from tirkit.media import media_ref
 from tirkit.serialize import dumps
-from tirkit.tracing import Span
+from tirkit.types import Dataset, Example, RunResult, Span, Trace
 
 
 class HttpClient:
@@ -128,8 +128,6 @@ class RemoteStore:
         return str(r.json()["version"])
 
     def load_dataset(self, name: str, version: str | None = None) -> Any:
-        from tirkit.datasets import Dataset, Example
-
         r = self.http.client.get(
             self._path(f"/datasets/{name}"), params={"version": version} if version else None
         )
@@ -146,8 +144,6 @@ class RemoteStore:
         )
 
     def get_trace(self, trace_id: str) -> Any:
-        from tirkit.store import Trace
-
         r = self.http.client.get(self._path(f"/traces/{trace_id}"))
         if r.status_code == 404:
             return None
@@ -164,8 +160,6 @@ class RemoteStore:
         r.raise_for_status()
 
     def load_experiment(self, experiment_id: str) -> Any:
-        from tirkit.runner import RunResult
-
         r = self.http.client.get(self._path(f"/experiments/{experiment_id}"))
         if r.status_code == 404:
             raise KeyError(f"no experiment {experiment_id!r}")
