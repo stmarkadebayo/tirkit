@@ -11,7 +11,8 @@ import Audit from "./pages/Audit";
 export interface NavItem {
   to: string;
   label: string;
-  section: "Observe" | "Evaluate" | "Iterate" | "Project";
+  /** Group heading in the navigation; Overview and Settings sit outside any group. */
+  section: "" | "Observe" | "Evaluate" | "Build";
 }
 
 export const extraRoutes: ReactNode[] = [
@@ -31,14 +32,20 @@ export const extraRoutes: ReactNode[] = [
   <Route key="audit" path="audit" element={<Audit />} />,
 ];
 
-export const extraNav: NavItem[] = [
+/** Navigation in display order (docs/DECISIONS.md 66): Overview first, then Observe, Evaluate, Build. */
+export const NAV: NavItem[] = [
+  { to: "traces", label: "Traces", section: "Observe" },
+  { to: "sessions", label: "Sessions", section: "Observe" },
+  { to: "users", label: "Users", section: "Observe" },
   { to: "alerts", label: "Alerts", section: "Observe" },
+  { to: "dashboard", label: "Dashboard", section: "Observe" },
   { to: "datasets", label: "Datasets", section: "Evaluate" },
   { to: "experiments", label: "Experiments", section: "Evaluate" },
+  { to: "judge", label: "Judge reliability", section: "Evaluate" },
   { to: "annotation", label: "Annotation", section: "Evaluate" },
   { to: "online-evals", label: "Online evals", section: "Evaluate" },
-  { to: "judge", label: "Judge reliability", section: "Evaluate" },
-  { to: "prompts", label: "Prompts", section: "Iterate" },
-  { to: "playground", label: "Playground", section: "Iterate" },
-  { to: "audit", label: "Audit log", section: "Project" },
+  { to: "prompts", label: "Prompts", section: "Build" },
+  { to: "playground", label: "Playground", section: "Build" },
+  { to: "audit", label: "Audit log", section: "" },
+  { to: "settings", label: "Settings", section: "" },
 ];
