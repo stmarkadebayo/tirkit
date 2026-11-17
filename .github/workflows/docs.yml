@@ -22,6 +22,6 @@ jobs:
       - run: mkdocs build --strict
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: build/docs
+          path: .cache/site
       - id: deployment
         uses: actions/deploy-pages@v4
