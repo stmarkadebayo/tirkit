@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
+import threading
+import weakref
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -32,19 +35,49 @@ class SQLStore(
 
 
 class SQLiteStore(SQLStore):
-    """Local store in one SQLite file (WAL mode, safe to share across threads)."""
+    """Local store in one SQLite file (WAL mode, safe to share across threads).
+
+    Fork-safe: a forked child opens its own connection and lock (SQLite connections must not be
+    used across ``fork``, and the parent's lock may have been held by another thread)."""
 
     dialect = Dialect()
 
     def __init__(self, path: str | Path = "tirkit.db", project_id: str = DEFAULT_PROJECT) -> None:
         self.path = Path(path)
-        if str(path) != ":memory:":
+        self._path_arg = str(path)
+        if self._path_arg != ":memory:":
             self.path.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(str(path), check_same_thread=False)
+        super().__init__(self._connect(), project_id)
+        _sqlite_stores.add(self)
+
+    def _connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self._path_arg, check_same_thread=False)
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA synchronous=NORMAL")
         conn.execute("PRAGMA foreign_keys=ON")
-        super().__init__(conn, project_id)
+        return conn
+
+    def _after_fork_in_child(self) -> None:
+        if self._path_arg == ":memory:":
+            return  # a private in-memory database: the child's copy is its own
+        # Keep the inherited connection referenced but unused: closing it in the child could
+        # checkpoint or delete the parent's WAL file.
+        _inherited_connections.append(self.conn)
+        self.conn = self._connect()
+        self._lock = threading.RLock()
+
+
+_sqlite_stores: weakref.WeakSet[SQLiteStore] = weakref.WeakSet()
+_inherited_connections: list[sqlite3.Connection] = []
+
+
+def _reopen_sqlite_after_fork() -> None:
+    for st in list(_sqlite_stores):
+        st._after_fork_in_child()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reopen_sqlite_after_fork)
 
 
 class PostgresStore(SQLStore):
