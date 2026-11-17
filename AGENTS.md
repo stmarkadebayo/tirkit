@@ -41,7 +41,9 @@ Tirkit is open source, so a change in one area must not break another. Core logi
 statistics, storage) does not import the server, CLI or web app. The web app talks to the server only
 through the HTTP API and its generated types, never through Python code. Put a change in the layer it
 belongs to, and keep pull requests to one area. See the "where do I change X" table in
-`.github/CONTRIBUTING.md` once it exists.
+`.github/CONTRIBUTING.md`. The layers are enforced by `import-linter` (`.importlinter`, part of
+`make lint`). After changing an HTTP route or `server/models.py`, run `make api` and commit
+`docs/api/openapi.json` and `web/src/api/schema.ts`.
 
 ## Hard rules
 
@@ -61,7 +63,11 @@ belongs to, and keep pull requests to one area. See the "where do I change X" ta
 make setup      # create .venv and install
 make test       # all tests
 make progress   # acceptance tests only
-make lint       # ruff and mypy
+make lint       # ruff, mypy and layer contracts (import-linter)
+make test-core  # tests that do not need the server
+make test-server # server, API contract and Postgres tests
+make test-web   # web UI: generated API types current + typecheck
+make api        # regenerate docs/api/openapi.json and web/src/api/schema.ts
 make demo       # run examples/quickstart.py
 make web        # build the web UI
 make serve      # run the server
@@ -71,14 +77,15 @@ make bench      # tracing overhead benchmark
 ## Layout
 
 ```
-src/tirkit/         Python package: tracing, client, store, datasets, scorers, judge, stats, runner, cli
+src/tirkit/         Python package: types, tracing, client, store/, datasets, scorers, judge, stats, runner, cli
   instrumentation/  OpenAI, Anthropic, Gemini and Realtime auto-instrumentation
   integrations/     LangChain, transformers
-  server/           FastAPI app, ingestion, OTLP, auth, worker routes
+  store/            SQLite and Postgres storage, one module per domain
+  server/           FastAPI app: deps (auth), models (API contract), routers/ per domain
 web/              React + TypeScript UI
 sdk-ts/           TypeScript SDK
 tests/            unit, server and acceptance tests
 examples/         quickstart, demo apps, CI workflow example
 research/         benchmarks, experiments (E1, E2) and the QA set they use
-docs/             SPEC, PLAN, DECISIONS, ROADMAP, and the user docs site (docs/site)
+docs/             SPEC, PLAN, DECISIONS, ROADMAP, the API schema (docs/api) and the docs site (docs/site)
 ```

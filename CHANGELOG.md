@@ -7,9 +7,18 @@ All notable changes to Tirkit are recorded here. The format follows
 ## [Unreleased]
 
 ### Changed
+- Code is organised in enforced layers (core, storage, SDK, evaluation, services, delivery); `make lint` runs the import-linter contracts. Shared types live in `tirkit.types` and are still importable from their old modules.
+- `tirkit.store` is now a package and the server is split into per-domain routers; public imports are unchanged.
+- Request validation errors return 400 with `{"detail": "..."}` like every other error.
+- The web UI's API types are generated from the server's OpenAPI schema (`make api`).
 - Repository layout: `SPEC.md` and `PLAN.md` moved to `docs/`; contributor and policy files (`CONTRIBUTING.md`, `CLA.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`) moved to `.github/`; `benchmarks/`, `experiments/` and `evals/` moved under `research/`; tool caches and the built docs site go to `.cache/`.
 
 ### Added
+- Complete OpenAPI schema: every route has request and response models; checked in as `docs/api/openapi.json` and kept current by CI.
+- API contract test that calls every route and validates the response against the schema.
+- `make test-core`, `make test-server`, `make test-web`, `make api`, `make api-check`.
+- CODEOWNERS, area labels on pull requests, and CI split by area.
+
 - Indexed full-text search (SQLite FTS5, Postgres tsvector/GIN): word-prefix matching, accent folding on SQLite, traces match on any span.
 - Gemini auto-instrumentation (google-genai: text, vision, audio/TTS output, streaming, embeddings, images, async).
 - OpenAI Realtime voice tracing: speech-to-speech turns with input/output audio, transcripts, tool calls and usage.
@@ -50,3 +59,6 @@ All notable changes to Tirkit are recorded here. The format follows
 - Apache-2.0 licence, NOTICE, Contributor License Agreement and CLA bot.
 - Contributing guide, Code of Conduct, security policy, issue and pull-request templates.
 - Secret scanning (gitleaks) in CI.
+
+### Fixed
+- Alerts created through the API without `window_s` showed "NaN min" in the UI.

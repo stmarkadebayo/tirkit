@@ -1,7 +1,11 @@
 # HTTP API
 
 The full, interactive reference is served by every Tirkit server at **`/api/docs`** (OpenAPI schema
-at `/api/openapi.json`).
+at `/api/openapi.json`). The same schema is checked into the repository as
+[`docs/api/openapi.json`](https://github.com/stmarkadebayo/tirkit/blob/main/docs/api/openapi.json):
+use it to generate a client in any language. Every request and response has a schema.
+
+Errors always have the shape `{"detail": "..."}`, including invalid requests (status 400).
 
 Authentication:
 

@@ -11,12 +11,45 @@ the one-time Contributor License Agreement.
 
 ## Set up
 ```bash
-make setup      # create .venv and install with dev tools
-make test       # all tests
-make lint       # ruff + mypy
-make progress   # how many acceptance tests pass
+make setup        # create .venv and install with dev tools
+make test         # all tests
+make test-core    # tests that do not need the server
+make test-server  # server, API contract and Postgres tests
+make test-web     # web UI: generated API types current + typecheck (needs npm ci in web/)
+make lint         # ruff, mypy and the layer contracts (import-linter)
+make api          # regenerate docs/api/openapi.json and the web UI's API types
+make progress     # how many acceptance tests pass
 ```
 Python 3.11 or newer. Copy `.env.example` to `.env` for anything that calls an LLM; never commit `.env`.
+
+## Where do I change X?
+
+Tirkit is split into layers, and `make lint` fails if code imports across them the wrong way. Each
+layer may import only from layers below it in this table; the web UI talks to the server only
+through the HTTP API.
+
+| I want to change... | Change it in | Layer | Run |
+| --- | --- | --- | --- |
+| A data type shared everywhere (`Span`, `Example`, `Dataset`, `Score`, `RunResult`) | `src/tirkit/types.py` | core | `make test` |
+| Redaction, prices and units, JSON conversion, statistics | `redact.py`, `pricing.py`, `serialize.py`, `stats.py` | core | `make test-core` |
+| How spans, datasets, experiments or scores are stored or queried | `src/tirkit/store/` (one module per domain) | storage | `make test-core`, then `make test-server` |
+| Tracing API, the background exporter, `tirkit.init()` | `tracing.py`, `exporter.py`, `client.py` | sdk | `make test-core`, `make bench` |
+| Support for a provider SDK (OpenAI, Anthropic, Gemini, ...) | `src/tirkit/instrumentation/` ([README](../src/tirkit/instrumentation/README.md)) | sdk | `make test-core`, `make bench` |
+| A framework integration (LangChain, transformers) | `src/tirkit/integrations/` | sdk | `make test-core` |
+| OTLP decoding and attribute mapping | `otel.py` | sdk | `make test-server` |
+| Scorers, the LLM judge, rubrics, judge reliability | `scorers.py`, `scorer_specs.py`, `judge.py`, `reliability.py` | eval | `make test-core` |
+| Running, comparing and gating experiments; reports | `runner.py`, `report.py` | eval | `make test-core` |
+| Accounts, alerts, annotation, online evaluators, prompts, background jobs | `accounts.py`, `alerts.py`, `annotation.py`, `online.py`, `prompts.py`, `jobs.py`, `worker_tasks.py` | services | `make test` |
+| An HTTP route or its request/response shape | `src/tirkit/server/routers/` and `models.py` ([README](../src/tirkit/server/README.md)); then `make api` | delivery | `make test-server`, `make api-check` |
+| A CLI command | `cli.py` | delivery | `make test-core` |
+| A screen in the web UI | `web/src/pages/` ([README](../web/README.md)) | web | `make test-web` |
+| The TypeScript SDK | `sdk-ts/` ([README](../sdk-ts/README.md)) | sdk (TS) | `cd sdk-ts && npm test` |
+| User docs | `docs/site/` | docs | `mkdocs build --strict` |
+| Docker, Compose, CI | `Dockerfile`, `docker-compose.yml`, `.github/workflows/` | deploy | — |
+
+Keep a pull request to one area where you can. Pull requests are labelled by area automatically, and
+CI runs only the jobs for the areas you touched. If a change needs a type from a higher layer, move
+the type down (usually into `tirkit/types.py`) rather than adding an exception to `.importlinter`.
 
 ## Making a change
 1. Fork the repository and create a branch from `main`.
@@ -25,9 +58,9 @@ Python 3.11 or newer. Copy `.env.example` to `.env` for anything that calls an L
    request and fix it in its own commit.
 3. Keep the change small and focused. Add type hints and docstrings on public functions.
 4. Keep heavy imports (fastapi, torch and similar) inside functions so the core SDK stays light.
-5. Run `make test` and `make lint` before you push.
-6. Use [Conventional Commits](https://www.conventionalcommits.org/) for messages: `feat:`, `fix:`,
-   `test:`, `docs:`, `refactor:`, `chore:`.
+5. Run `make test` and `make lint` before you push (and `make api` if you changed the HTTP API).
+6. Write short, plain commit messages: one line saying what changed, such as `Add login rate limit`
+   or `Fix span ordering in trace view`. No prefixes. One logical change per commit.
 7. Add a line under "Unreleased" in [CHANGELOG.md](CHANGELOG.md) for any user-visible change.
 8. Open a pull request and fill in the template.
 
