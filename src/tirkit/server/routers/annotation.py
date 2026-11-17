@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from tirkit.annotation import Annotation
 from tirkit.serialize import dumps
 from tirkit.server import models as m
 from tirkit.server.deps import Ctx, json_response, project_ctx
+from tirkit.server.security import audit_event
 
 router = APIRouter(tags=["annotation"])
 
@@ -126,11 +127,12 @@ def skip(queue_id: str, item_id: str, ctx: Ctx = Depends(project_ctx)) -> Respon
         200: {"description": "One labelled item per line", "content": {"application/x-ndjson": {}}}
     },
 )
-def labels(queue_id: str, ctx: Ctx = Depends(project_ctx)) -> Response:
+def labels(queue_id: str, request: Request, ctx: Ctx = Depends(project_ctx)) -> Response:
     try:
         rows = Annotation(ctx.store).labels(queue_id)
     except KeyError as exc:
         raise HTTPException(404, str(exc)) from exc
+    audit_event(request, "export.labels", ctx=ctx, target=queue_id)
     return Response(
         "".join(dumps(r) + "\n" for r in rows),
         media_type="application/x-ndjson",
