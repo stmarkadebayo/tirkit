@@ -21,3 +21,8 @@ await shutdown();
 
 Spans nest across `await` through `AsyncLocalStorage`. Streams are traced until they end, with
 time to first token. Any other language can send OpenTelemetry instead (see Integrations).
+
+Failed batches are retried with jittered exponential backoff (capped at 5 s), at most `maxRetries`
+(default 5) times and `maxRetryMs` (default 30,000) in total. A `Retry-After` header on 429 or 503
+is honoured. Timeouts, connection errors, 408, 429 and 5xx are retried; other 4xx are not.
+Re-sending a batch is safe because ingestion is idempotent.
