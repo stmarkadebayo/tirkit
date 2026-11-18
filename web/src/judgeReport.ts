@@ -22,11 +22,45 @@ export interface Reading {
   nPairs: number;
   lengthJudge: number | null;
   lengthHuman: number | null;
+  /** Judge minus human length correlation (stored, or derived for older reports). */
+  lengthBias: number | null;
+  /** 95% intervals stored with the report; null for reports made before they were recorded. */
+  weightedCi: Interval | null;
+  passFailCi: Interval | null;
+  exactCi: Interval | null;
+  lengthBiasCi: Interval | null;
+  /** Stored Wilson interval; for older reports, computed here from the rate and pair count. */
+  flipCi: Interval | null;
+}
+
+export type Interval = [number, number];
+
+function interval(s: Summary, key: string): Interval | null {
+  const lo = num(s[`${key}_ci_low`]);
+  const hi = num(s[`${key}_ci_high`]);
+  return lo === null || hi === null ? null : [lo, hi];
+}
+
+/** "0.42 (95% 0.31 to 0.55)", or the value alone when no interval was recorded. */
+export function withInterval(value: number | null, ci: Interval | null, digits = 2): string {
+  if (value === null) return "not measured yet";
+  const v = value.toFixed(digits);
+  return ci ? `${v} (95% ${ci[0].toFixed(digits)} to ${ci[1].toFixed(digits)})` : `${v} (no interval recorded)`;
 }
 
 export function readReport(summary: Summary | null | undefined): Reading {
   const s = summary ?? {};
+  const flip = num(s.flip_rate);
+  const nPairs = num(s.n_pairs_decided) ?? 0;
+  const lj = num(s.length_corr_judge);
+  const lh = num(s.length_corr_human);
   return {
+    lengthBias: num(s.length_bias) ?? (lj !== null && lh !== null ? lj - lh : null),
+    weightedCi: interval(s, "weighted_kappa"),
+    passFailCi: interval(s, "pass_fail_kappa"),
+    exactCi: interval(s, "exact_agreement"),
+    lengthBiasCi: interval(s, "length_bias"),
+    flipCi: interval(s, "flip_rate") ?? (flip !== null ? wilson(flip, nPairs) : null),
     kappa: num(s.kappa),
     ciLow: num(s.kappa_ci_low),
     ciHigh: num(s.kappa_ci_high),

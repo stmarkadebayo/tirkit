@@ -129,30 +129,63 @@ def reliability_report(
         "human_key": human_key,
     }
     if both:
+        n = len(both)
         h = [x[1] for x in both]
         j = [x[2] for x in both]
-        report["exact_agreement"] = sum(a == b for a, b in zip(h, j, strict=True)) / len(both)
+        matches = sum(a == b for a, b in zip(h, j, strict=True))
+        report["exact_agreement"] = matches / n
+        _put_ci(report, "exact_agreement", stats.wilson_ci(matches, n))
         report["mean_abs_diff"] = stats.mean([abs(a - b) for a, b in zip(h, j, strict=True)])
         rh, rj = [round(x) for x in h], [round(x) for x in j]
         report["kappa"] = stats.cohen_kappa(rh, rj)
-        report["kappa_ci_low"], report["kappa_ci_high"] = stats.kappa_ci(rh, rj)
+        _put_ci(report, "kappa", stats.kappa_ci(rh, rj))
         ordinal = all(float(x).is_integer() for x in h + j)
         if ordinal:
-            report["weighted_kappa"] = stats.weighted_kappa(
-                [int(x) for x in h], [int(x) for x in j]
+            ih, ij = [int(x) for x in h], [int(x) for x in j]
+            cats = sorted(set(ih) | set(ij))  # keep the full scale in every resample
+            report["weighted_kappa"] = stats.weighted_kappa(ih, ij, categories=cats)
+            _put_ci(
+                report,
+                "weighted_kappa",
+                stats.bootstrap_stat(
+                    n,
+                    lambda idx: stats.weighted_kappa(
+                        [ih[i] for i in idx], [ij[i] for i in idx], categories=cats
+                    ),
+                ),
             )
         binary_h = [x >= (pass_at if max(h) > 1 else 1) for x in h]
         binary_j = [x >= (pass_at if max(j) > 1 else 1) for x in j]
         report["pass_fail_kappa"] = stats.cohen_kappa(binary_h, binary_j)
+        _put_ci(report, "pass_fail_kappa", stats.kappa_ci(binary_h, binary_j))
         lengths = [float(len(output_text(x[0].get("output")).split())) for x in both]
-        if len(both) >= 3:
+        if n >= 3:
             report["length_corr_judge"] = stats.spearman(lengths, j)
             report["length_corr_human"] = stats.spearman(lengths, h)
+            report["length_bias"] = report["length_corr_judge"] - report["length_corr_human"]
+
+            def length_stats(idx: list[int]) -> tuple[float, float, float]:
+                ln = [lengths[i] for i in idx]
+                cj = stats.spearman(ln, [j[i] for i in idx])
+                ch = stats.spearman(ln, [h[i] for i in idx])
+                return cj, ch, cj - ch
+
+            ci_j, ci_h, ci_gap = stats.bootstrap_intervals(n, length_stats)
+            _put_ci(report, "length_corr_judge", ci_j)
+            _put_ci(report, "length_corr_human", ci_h)
+            _put_ci(report, "length_bias", ci_gap)
     rate, n_decided = flip_rate(pairs)
     report["n_pairs"] = len(pairs)
     report["n_pairs_decided"] = n_decided
     report["flip_rate"] = rate
+    if rate is not None:
+        _put_ci(report, "flip_rate", stats.wilson_ci(round(rate * n_decided), n_decided))
     return report
+
+
+def _put_ci(report: dict[str, Any], key: str, ci: tuple[float, float]) -> None:
+    """Store a 95% interval next to its estimate as ``<key>_ci_low`` / ``<key>_ci_high``."""
+    report[f"{key}_ci_low"], report[f"{key}_ci_high"] = ci
 
 
 def save_report(store: Any, report: dict[str, Any], rubric: Any, model: str, source: str) -> str:
@@ -193,19 +226,24 @@ def list_reports(store: Any) -> list[dict[str, Any]]:
 def render_reliability(report: dict[str, Any]) -> str:
     def f(key: str, digits: int = 3) -> str:
         v = report.get(key)
-        return "—" if v is None else f"{v:.{digits}f}"
+        if v is None:
+            return "—"
+        lo, hi = report.get(f"{key}_ci_low"), report.get(f"{key}_ci_high")
+        ci = "" if lo is None or hi is None else f" (95% {lo:.{digits}f} to {hi:.{digits}f})"
+        return f"{v:.{digits}f}{ci}"
 
     return "\n".join(
         [
             f"Judge reliability vs human label `{report['human_key']}`",
             f"  items labelled: {report['n_labelled']}, judged: {report['n_judged']}, "
             f"judge failures: {report['n_judge_failures']}",
-            f"  Cohen's kappa: {f('kappa')}   weighted kappa: {f('weighted_kappa')}   "
-            f"pass/fail kappa: {f('pass_fail_kappa')}",
+            f"  Cohen's kappa: {f('kappa')}",
+            f"  weighted kappa: {f('weighted_kappa')}",
+            f"  pass/fail kappa: {f('pass_fail_kappa')}",
             f"  exact agreement: {f('exact_agreement')}   "
             f"mean |judge − human|: {f('mean_abs_diff')}",
             f"  length bias (Spearman with output words): judge {f('length_corr_judge')}, "
-            f"human {f('length_corr_human')}",
+            f"human {f('length_corr_human')}; judge minus human {f('length_bias')}",
             f"  position-swap flip rate: {f('flip_rate')} over {report['n_pairs_decided']} decided "
             f"pairs ({report['n_pairs']} judged in both orders)",
         ]

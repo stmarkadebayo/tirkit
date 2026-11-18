@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { flipVerdict, kappaVerdict, labelsProgress, lengthVerdict, nextAction, readReport, wilson } from "./judgeReport";
+import { flipVerdict, kappaVerdict, labelsProgress, lengthVerdict, nextAction, readReport, wilson, withInterval } from "./judgeReport";
 
 const rd = (s: Record<string, number | null>) => readReport(s);
 
@@ -81,5 +81,35 @@ describe("labels and next action", () => {
     expect(nextAction(30, true, readReport({ kappa: 0.3, n_judged: 30 })).to).toBe("judge#rubric");
     expect(nextAction(60, true, readReport({ kappa: 0.8, n_judged: 60 })).to).toBe("annotation");
     expect(nextAction(150, true, readReport({ kappa: 0.8, n_judged: 150 })).to).toBe("experiments");
+  });
+});
+
+describe("intervals in a report", () => {
+  it("reads every stored interval", () => {
+    const r = readReport({
+      weighted_kappa: 0.6, weighted_kappa_ci_low: 0.5, weighted_kappa_ci_high: 0.7,
+      pass_fail_kappa: 0.4, pass_fail_kappa_ci_low: 0.2, pass_fail_kappa_ci_high: 0.6,
+      exact_agreement: 0.5, exact_agreement_ci_low: 0.4, exact_agreement_ci_high: 0.6,
+      length_bias: 0.1, length_bias_ci_low: -0.1, length_bias_ci_high: 0.3,
+      flip_rate: 0.3, n_pairs_decided: 40, flip_rate_ci_low: 0.18, flip_rate_ci_high: 0.45,
+    });
+    expect(r.weightedCi).toEqual([0.5, 0.7]);
+    expect(r.passFailCi).toEqual([0.2, 0.6]);
+    expect(r.exactCi).toEqual([0.4, 0.6]);
+    expect(r.lengthBias).toBe(0.1);
+    expect(r.lengthBiasCi).toEqual([-0.1, 0.3]);
+    expect(r.flipCi).toEqual([0.18, 0.45]);
+  });
+  it("falls back for reports made before intervals were stored", () => {
+    const r = readReport({ flip_rate: 0.3, n_pairs_decided: 40, length_corr_judge: 0.5, length_corr_human: 0.2 });
+    expect(r.flipCi).toEqual(wilson(0.3, 40));
+    expect(r.lengthBias).toBeCloseTo(0.3);
+    expect(r.lengthBiasCi).toBeNull();
+    expect(r.weightedCi).toBeNull();
+  });
+  it("formats a value with its interval, and says when there is none", () => {
+    expect(withInterval(0.42, [0.31, 0.55])).toBe("0.42 (95% 0.31 to 0.55)");
+    expect(withInterval(0.42, null)).toBe("0.42 (no interval recorded)");
+    expect(withInterval(null, null)).toBe("not measured yet");
   });
 });

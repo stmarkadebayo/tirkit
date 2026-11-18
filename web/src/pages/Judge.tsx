@@ -13,7 +13,7 @@ import {
   lengthVerdict,
   nextAction,
   readReport,
-  wilson,
+  withInterval,
 } from "../judgeReport";
 
 export function JudgeReliability() {
@@ -44,7 +44,7 @@ export function JudgeReliability() {
   const kv = reading ? kappaVerdict(reading) : kappaVerdict(readReport(null));
   const fv = reading ? flipVerdict(reading.flip, reading.nPairs) : flipVerdict(null, 0);
   const lv = reading ? lengthVerdict(reading.lengthJudge, reading.lengthHuman) : lengthVerdict(null, null);
-  const flipCi = reading && reading.flip !== null ? wilson(reading.flip, reading.nPairs) : null;
+  const flipCi = reading?.flipCi ?? null;
   const lp = labelsProgress(labels);
   const next = nextAction(labels, !!report, reading);
 
@@ -128,7 +128,14 @@ export function JudgeReliability() {
         <div className="grid grid-2">
           <section className="panel" aria-labelledby="pos-h">
             <h3 id="pos-h">Position bias</h3>
-            <Metric label="Verdicts that flip when the answer order swaps" hint={reading && reading.nPairs ? `${reading.nPairs} pairs with a clear winner` : undefined}>
+            <Metric
+              label="Verdicts that flip when the answer order swaps"
+              hint={
+                reading && reading.nPairs
+                  ? `${reading.nPairs} pairs with a clear winner${flipCi ? `; 95% interval ${Math.round(flipCi[0] * 100)}% to ${Math.round(flipCi[1] * 100)}%` : ""}`
+                  : undefined
+              }
+            >
               {reading && reading.flip !== null ? `${Math.round(reading.flip * 100)}%` : <span className="muted small">not measured yet</span>}
             </Metric>
             {reading && reading.flip !== null && (
@@ -153,8 +160,19 @@ export function JudgeReliability() {
 
           <section className="panel" aria-labelledby="len-h">
             <h3 id="len-h">Length bias</h3>
-            <Metric label="How strongly score follows answer length (-1 to 1)" hint={reading && reading.lengthJudge !== null && reading.lengthHuman !== null ? `judge ${fmt2(reading.lengthJudge)}, humans ${fmt2(reading.lengthHuman)}` : undefined}>
-              {reading && reading.lengthJudge !== null ? (reading.lengthJudge - (reading.lengthHuman ?? 0)).toFixed(2) : <span className="muted small">not measured yet</span>}
+            <Metric
+              label="How much more the judge's score follows answer length than yours (-2 to 2)"
+              hint={
+                reading && reading.lengthJudge !== null && reading.lengthHuman !== null
+                  ? `judge ${fmt2(reading.lengthJudge)}, humans ${fmt2(reading.lengthHuman)}; ${
+                      reading.lengthBiasCi
+                        ? `95% interval ${reading.lengthBiasCi[0].toFixed(2)} to ${reading.lengthBiasCi[1].toFixed(2)}`
+                        : "no interval recorded for this report"
+                    }`
+                  : undefined
+              }
+            >
+              {reading && reading.lengthBias !== null ? reading.lengthBias.toFixed(2) : <span className="muted small">not measured yet</span>}
             </Metric>
             {reading && reading.lengthJudge !== null && reading.lengthHuman !== null && (
               <>
@@ -193,9 +211,9 @@ export function JudgeReliability() {
           <details className="panel fold">
             <summary>More numbers for this report</summary>
             <dl className="kv" style={{ marginTop: 8 }}>
-              <dt>Exact agreement</dt><dd>{reading.exact === null ? "not measured yet" : `${Math.round(reading.exact * 100)}%`}</dd>
-              <dt>Weighted kappa</dt><dd>{fmt2(reading.weighted)}</dd>
-              <dt>Pass/fail kappa</dt><dd>{fmt2(reading.passFail)}</dd>
+              <dt>Exact agreement</dt><dd>{withInterval(reading.exact, reading.exactCi)}</dd>
+              <dt>Weighted kappa</dt><dd>{withInterval(reading.weighted, reading.weightedCi)}</dd>
+              <dt>Pass/fail kappa</dt><dd>{withInterval(reading.passFail, reading.passFailCi)}</dd>
               <dt>Items labelled / judged</dt><dd>{reading.nLabelled} / {reading.nJudged}</dd>
             </dl>
           </details>
@@ -207,7 +225,7 @@ export function JudgeReliability() {
             <div className="table-wrap">
               <table>
                 <thead>
-                  <tr><th>When</th><th>Rubric</th><th>Judge model</th><th className="num">Labels</th><th className="num">κ</th><th /></tr>
+                  <tr><th>When</th><th>Rubric</th><th>Judge model</th><th className="num">Labels</th><th className="num">κ</th><th className="num">95% interval</th><th /></tr>
                 </thead>
                 <tbody>
                   {reports.map((r) => {
@@ -219,6 +237,7 @@ export function JudgeReliability() {
                         <td className="small">{r.model}</td>
                         <td className="num">{rr.nJudged}</td>
                         <td className="num">{fmt2(rr.kappa)}</td>
+                        <td className="num small muted">{rr.ciLow !== null && rr.ciHigh !== null ? `${rr.ciLow.toFixed(2)} to ${rr.ciHigh.toFixed(2)}` : "not recorded"}</td>
                         <td><button onClick={() => setPicked(r.report_id)} disabled={r.report_id === report?.report_id}>Show</button></td>
                       </tr>
                     );
