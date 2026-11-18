@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, projectPath, type Json, type NextItem as NextResponse, type Queue, type ScoreConfig as Config } from "../api";
 import { usePid, useRole } from "../hooks";
 import { Content } from "../components/Content";
+import { EmptyState } from "../components/EmptyState";
 
 export function Annotation() {
   const pid = usePid();
@@ -15,6 +16,29 @@ export function Annotation() {
   const [queue, setQueue] = useState({ name: "", scores: [] as string[], fill: "50" });
   const [err, setErr] = useState("");
   const canEdit = role !== "viewer";
+  const nav = useNavigate();
+  const probe = useQuery({ queryKey: ["trace-probe", pid], queryFn: () => api<{ total: number }>(projectPath(pid, "/traces?limit=1")) });
+  // One click: a 1-5 "correctness" score (unless one exists), a queue of recent traces, then the labelling screen.
+  const quickStart = async () => {
+    setErr("");
+    try {
+      let score = configs.data?.[0]?.name;
+      if (!score) {
+        score = "correctness";
+        await api(projectPath(pid, `/score-configs/${score}`), {
+          method: "PUT",
+          json: { data_type: "numeric", min_value: 1, max_value: 5, categories: null, description: "Is the answer correct? 1 = wrong, 5 = fully correct." },
+        });
+      }
+      const r = await api<{ queue_id: string }>(projectPath(pid, "/queues"), { method: "POST", json: { name: "First labels", score_names: [score] } });
+      await api(projectPath(pid, `/queues/${r.queue_id}/items`), { method: "POST", json: { filter: {}, limit: 50 } });
+      void qc.invalidateQueries({ queryKey: ["configs", pid] });
+      void qc.invalidateQueries({ queryKey: ["queues", pid] });
+      nav(`/p/${pid}/annotate/${r.queue_id}`);
+    } catch (e) {
+      setErr(String(e));
+    }
+  };
   const saveConfig = async () => {
     setErr("");
     try {
@@ -84,7 +108,13 @@ export function Annotation() {
               ))}
               {queues.data && !queues.data.length && (
                 <tr>
-                  <td colSpan={4} className="empty">No queues yet. Define a score below, then create a queue.</td>
+                  <td colSpan={4}>
+                    <EmptyState title="Start labelling your own outputs">
+                      <p>Your labels are the ground truth: they show whether the LLM judge can be trusted. You need 20 to begin and about 100 for a firm answer.</p>
+                      {canEdit && (probe.data?.total ?? 0) > 0 && <button className="primary" onClick={quickStart}>Label 50 recent traces</button>}
+                      {(probe.data?.total ?? 0) === 0 && probe.data && <p>There are no traces to label yet. <Link to={`/p/${pid}/overview`}>Send your first trace</Link> first.</p>}
+                    </EmptyState>
+                  </td>
                 </tr>
               )}
             </tbody>

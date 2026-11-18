@@ -5,6 +5,8 @@ import { api, projectPath, qs, type Filters, type Trace } from "../api";
 import { RANGES, usePid, useRole } from "../hooks";
 import { fmtAgo, fmtCost, fmtMs, fmtNum, preview } from "../format";
 import { AddToDataset } from "../components/AddToDataset";
+import { EmptyState } from "../components/EmptyState";
+import { TraceSnippetPanel } from "../components/SetupChecklist";
 import { TextFilter } from "../components/TextFilter";
 import { MORE_LABELS, activeMoreCount, clearFilters, hasAnyFilter, range as rangeOf, traceQuery, withParam, type FilterKey } from "../traceFilters";
 import { moveCursor, scrollToRow, visibleRange } from "../windowing";
@@ -261,13 +263,15 @@ export default function Traces() {
             </div>
             {traces.isLoading && <div className="empty">Loading…</div>}
             {traces.data && !rows.length && (
-              <div className="empty">
+              <div className={filtered ? "empty" : undefined}>
                 {filtered ? (
                   <>
                     No traces match these filters. <button onClick={() => setParams(clearFilters(params), { replace: true })}>Clear filters</button>
                   </>
                 ) : (
-                  "No traces yet."
+                  <EmptyState title="No traces yet" code={<TraceSnippetPanel pid={pid} />}>
+                    <p>Add the lines below to your app. Traces show up here within seconds.</p>
+                  </EmptyState>
                 )}
               </div>
             )}

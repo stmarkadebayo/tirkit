@@ -158,3 +158,18 @@ function FirstTrace({ pid, publicKey, secretKey, gotIt, firstTraceId }: { pid: s
     </div>
   );
 }
+
+/** A ready-to-copy snippet with this project's host and public key, for empty screens. */
+export function TraceSnippetPanel({ pid }: { pid: string }) {
+  const role = useRole();
+  const keys = useQuery({ queryKey: ["keys", pid], queryFn: () => api<ApiKeyInfo[]>(projectPath(pid, "/keys")), enabled: role === "admin" });
+  const publicKey = keys.data?.find((k) => !k.expired)?.public_key ?? null;
+  return (
+    <>
+      <CodeBlock code={snippet("python", { host: window.location.origin, publicKey, secretKey: null })} />
+      <p className="small" style={{ marginTop: 8 }}>
+        The secret key is shown once, when a key is created. <Link to={`/p/${pid}/overview`}>Open the setup checklist</Link> to create one and see the code with it filled in.
+      </p>
+    </>
+  );
+}

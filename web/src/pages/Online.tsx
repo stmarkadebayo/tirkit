@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, projectPath, type AlertList, type Evaluator, type EvaluatorList, type JudgeReports, type Json, type Queue } from "../api";
 import { usePid, useRole } from "../hooks";
 import { fmtAgo, fmtCost, fmtNum } from "../format";
+import { EmptyState } from "../components/EmptyState";
 
 export function OnlineEvals() {
   const pid = usePid();
@@ -85,7 +86,16 @@ export function OnlineEvals() {
             ))}
             {q.data && !q.data.evaluators.length && (
               <tr>
-                <td colSpan={9} className="empty">No evaluators yet.</td>
+                <td colSpan={9}>
+                  <EmptyState title="Score live traffic automatically">
+                    <p>An evaluator scores a sample of new traces as they arrive, so quality drops show up without you looking. Judge calls cost money; set a daily cap in Settings.</p>
+                    {role !== "viewer" && (
+                      <button className="primary" onClick={() => { setForm({ ...form, name: form.name || "quality", spec: "judge:correctness", rate: "10" }); document.getElementById("new-evaluator")?.scrollIntoView({ block: "center" }); setTimeout(() => document.getElementById("evaluator-model")?.focus(), 0); }}>
+                        Set up a correctness judge on 10% of traces
+                      </button>
+                    )}
+                  </EmptyState>
+                </td>
               </tr>
             )}
           </tbody>
@@ -93,7 +103,7 @@ export function OnlineEvals() {
       </div>
       {role !== "viewer" && (
         <div className="panel">
-          <h2>New evaluator</h2>
+          <h2 id="new-evaluator">New evaluator</h2>
           <div className="row">
             <input placeholder="Score name (e.g. quality)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <select value={form.spec} onChange={(e) => setForm({ ...form, spec: e.target.value })} aria-label="Scorer">
@@ -102,7 +112,7 @@ export function OnlineEvals() {
               ))}
             </select>
             {form.spec.startsWith("judge:") && (
-              <input placeholder="judge model" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} />
+              <input id="evaluator-model" placeholder="judge model" aria-label="Judge model" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} />
             )}
             <label className="small">
               sample <input type="number" min={1} max={100} value={form.rate} onChange={(e) => setForm({ ...form, rate: e.target.value })} style={{ width: 60 }} />%
