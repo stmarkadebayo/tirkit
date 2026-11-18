@@ -4,6 +4,7 @@ import { api, projectPath, qs, type Metrics } from "../api";
 import { RANGES, usePid } from "../hooks";
 import { TimeChart } from "../components/Charts";
 import { fmtCompact, fmtCost, fmtMs, fmtNum } from "../format";
+import { Stat } from "../components/Stat";
 
 export function RangePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
@@ -178,14 +179,4 @@ function mergeScores(m: Metrics): Record<string, number>[] {
     }
   }
   return [...byT.values()].sort((a, b) => a.t - b.t);
-}
-
-export function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="panel stat">
-      <div className="label">{label}</div>
-      <div className="value">{value}</div>
-      {sub && <div className="sub">{sub}</div>}
-    </div>
-  );
 }
