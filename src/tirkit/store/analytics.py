@@ -76,8 +76,9 @@ class AnalyticsMixin(StoreBase):
         max_latency_samples: int = 100_000,
     ) -> dict[str, Any]:
         """Dashboard series over [since, until): per bucket and optional group (model, name,
-        release, user_id, kind): spans, traces, errors, tokens, cost, latency p50/p95/p99, and
-        score averages. Latency percentiles are exact up to ``max_latency_samples`` traces
+        release, user_id, kind): spans, traces, errors, tokens, cost, latency p50/p95/p99,
+        prompt-cache hit rate, reasoning tokens, time to first token p50/p95, and score
+        averages. Latency percentiles are exact up to ``max_latency_samples`` traces
         (SPEC §6.8); the sample size is reported."""
         width = max((until - since) / buckets, 1.0)
         group_col = {
@@ -89,23 +90,43 @@ class AnalyticsMixin(StoreBase):
         }.get(group_by or "")
         g = f"COALESCE({group_col}, '(none)')" if group_col else "'all'"
         bucket = f"CAST((start_time - {float(since)!r}) / {width!r} AS INTEGER)"
+        d = self.dialect
+        cached = f"CAST({d.json_get('usage', 'cached_input_tokens')} AS {d.real})"
+        reasoning = f"CAST({d.json_get('usage', 'reasoning_tokens')} AS {d.real})"
         rows = self.execute(
             f"SELECT {bucket} AS b, {g} AS g, COUNT(*), "
             "SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END), SUM(input_tokens), "
-            "SUM(output_tokens), SUM(cost_usd) FROM spans "
+            f"SUM(output_tokens), SUM(cost_usd), SUM({cached}), SUM({reasoning}) FROM spans "
             "WHERE project_id = ? AND start_time >= ? AND start_time < ? "
             "GROUP BY 1, 2",
             [self.project_id, since, until],
         )
         series: dict[str, dict[int, dict[str, Any]]] = {}
-        for b, grp, n, errs, tin, tout, cost in rows:
+        for b, grp, n, errs, tin, tout, cost, tcached, treason in rows:
             series.setdefault(str(grp), {})[int(b)] = {
                 "spans": int(n),
                 "errors": int(errs or 0),
                 "input_tokens": int(tin or 0),
                 "output_tokens": int(tout or 0),
                 "cost_usd": float(cost or 0.0),
+                "cached_input_tokens": int(tcached or 0),
+                "reasoning_tokens": int(treason or 0),
+                # Share of input tokens served from the provider's prompt cache.
+                "cache_hit_rate": float(tcached or 0) / float(tin) if tin else None,
             }
+        ttft_rows = self.execute(
+            f"SELECT {bucket}, {g}, ttft_ms FROM spans "
+            "WHERE project_id = ? AND start_time >= ? AND start_time < ? "
+            "AND ttft_ms IS NOT NULL ORDER BY start_time DESC LIMIT ?",
+            [self.project_id, since, until, max_latency_samples],
+        )
+        ttft: dict[tuple[str, int], list[float]] = {}
+        for b, grp, value in ttft_rows:
+            ttft.setdefault((str(grp), int(b)), []).append(float(value))
+        for (grp, b), values in ttft.items():
+            values.sort()
+            point = series.setdefault(grp, {}).setdefault(b, {"spans": 0, "errors": 0})
+            point.update(ttft_p50_ms=_pct(values, 0.5), ttft_p95_ms=_pct(values, 0.95))
         trace_group = group_col if group_col in {"name", "release", "user_id"} else None
         tg = f"COALESCE({trace_group}, '(none)')" if trace_group else "'all'"
         lat_rows = self.execute(

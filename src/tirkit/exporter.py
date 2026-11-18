@@ -3,12 +3,22 @@
 ``save_span`` only appends to a bounded queue. A daemon thread extracts media and writes batches to
 the target (a store, or the HTTP client). When the queue is full, spans are dropped and counted,
 never blocking the caller.
+
+Fork safety: after ``os.fork()`` (directly, or through ``multiprocessing`` with the fork start
+method) only the forking thread exists in the child, and any lock held by another thread stays
+held forever. ``os.register_at_fork`` gives every live exporter a new lock, events, an empty queue
+and a new background thread in the child. Spans queued before the fork belong to the parent,
+which still exports them. ``multiprocessing`` children leave through ``os._exit`` (no ``atexit``),
+so a ``multiprocessing`` finalizer flushes them on the way out.
 """
 
 from __future__ import annotations
 
 import atexit
 import logging
+import os
+import random
+import sys
 import threading
 import time
 import weakref
@@ -16,13 +26,24 @@ from collections import deque
 from typing import Any, Protocol
 
 from tirkit.media import MediaStore, extract_media
+from tirkit.redact import MODES, SDK_REDACTIONS_ATTR, Redactor
 from tirkit.tracing import Span
 
 log = logging.getLogger("tirkit")
 
+MAX_RATE_LIMIT_WAIT_S = 60.0  # longest total wait on 429 responses for one batch
+
 
 class BatchTarget(Protocol):
     def save_spans(self, spans: list[Span]) -> None: ...
+
+
+def backoff_delay(
+    attempt: int, *, base: float = 0.2, cap: float = 5.0, rng: random.Random | None = None
+) -> float:
+    """Exponential backoff with full jitter: uniform in ``[0, min(cap, base * 2**attempt)]``, so
+    many clients that failed together do not retry together."""
+    return (rng or random).uniform(0.0, min(cap, base * 2.0 ** min(attempt, 30)))
 
 
 _live: weakref.WeakSet[BatchExporter] = weakref.WeakSet()
@@ -39,26 +60,48 @@ class BatchExporter:
         max_queue: int = 10_000,
         batch_size: int = 256,
         interval_s: float = 0.25,
-        max_retries: int = 3,
+        max_retries: int = 5,
+        max_retry_s: float = 30.0,
+        redact: str | None = None,
+        redact_patterns: list[tuple[str, str]] | None = None,
     ) -> None:
+        if redact is not None and redact not in MODES:
+            raise ValueError(f"redact must be one of {MODES}")
+        self.redact = redact
+        self.redact_patterns = list(redact_patterns or [])
+        self.redacted = 0
         self.target = target
         self.media_store = media_store
         self.max_queue = max_queue
         self.batch_size = batch_size
         self.interval_s = interval_s
         self.max_retries = max_retries
+        self.max_retry_s = max_retry_s
         self.dropped = 0
         self.exported = 0
         self.failed = 0
+        self.throttled = 0  # times a batch waited for a 429 Retry-After
+        self._outage_logged = False  # one warning per outage, not one per lost batch
         self._queue: deque[Span] = deque()
+        self._stop = False
+        self._start()
+        _live.add(self)
+
+    def _start(self) -> None:
+        """Fresh lock, events and background thread (also used in a forked child)."""
         self._lock = threading.Lock()
         self._wake = threading.Event()
         self._idle = threading.Event()
         self._idle.set()
-        self._stop = False
         self._thread = threading.Thread(target=self._run, name="tirkit-exporter", daemon=True)
         self._thread.start()
-        _live.add(self)
+
+    def _after_fork_in_child(self) -> None:
+        # Never touch the old lock or events here: another parent thread may have held them.
+        self._queue = deque()  # the parent exports what it had queued
+        self.dropped = self.exported = self.failed = 0
+        if not self._stop:
+            self._start()
 
     # Hot path ---------------------------------------------------------------------------------
 
@@ -90,23 +133,79 @@ class BatchExporter:
                 span.attributes = extract_media(span.attributes, self.media_store)
         except Exception:  # noqa: BLE001
             log.warning("tirkit: media extraction failed for span %s", span.name, exc_info=True)
+        if self.redact and self.redact != "off":
+            # Runs here, in the exporter thread, so redaction never slows the traced code.
+            r = Redactor(self.redact, self.redact_patterns)
+            span.input = r.obj(span.input)
+            span.output = r.obj(span.output)
+            span.attributes = r.obj(span.attributes) or {}
+            span.error = r.text(span.error) if span.error else span.error
+            if r.count:
+                span.attributes[SDK_REDACTIONS_ATTR] = r.count
+                self.redacted += r.count
         return span
 
     def _write(self, batch: list[Span]) -> None:
+        """Write one batch, retrying failures for at most ``max_retries`` attempts and
+        ``max_retry_s`` seconds. The server's ``Retry-After`` wins over the backoff; an error that
+        says it is not retryable (``exc.retryable is False``, e.g. HTTP 400) fails at once."""
         batch = [self._prepare(s) for s in batch]
-        delay = 0.2
-        for attempt in range(self.max_retries + 1):
+        deadline = time.monotonic() + self.max_retry_s
+        patience = time.monotonic() + MAX_RATE_LIMIT_WAIT_S
+        attempt = 0
+        while True:
             try:
                 self.target.save_spans(batch)
                 self.exported += len(batch)
+                if self._outage_logged:
+                    self._outage_logged = False
+                    log.info("tirkit: exporting again after %d spans were dropped", self.failed)
                 return
-            except Exception:  # noqa: BLE001
-                if attempt == self.max_retries:
+            except Exception as exc:  # noqa: BLE001
+                wait = self._retry_wait(exc, attempt, deadline, patience)
+                if wait is None:
                     self.failed += len(batch)
-                    log.warning("tirkit: failed to export %d spans", len(batch), exc_info=True)
+                    if not self._outage_logged:
+                        self._outage_logged = True
+                        log.warning(
+                            "tirkit: failed to export %d spans: %s. Spans are being dropped and "
+                            "counted (tirkit.get_client().exporter.stats()); this is logged once "
+                            "until exports work again.",
+                            len(batch),
+                            exc,
+                        )
                     return
-                time.sleep(delay)
-                delay = min(delay * 2, 5.0)
+                if getattr(exc, "retry_after", None) is None:
+                    attempt += 1
+                else:
+                    # The server asked us to slow down: that is not a failed attempt.
+                    self.throttled += 1
+                time.sleep(wait)
+
+    def _retry_wait(
+        self, exc: Exception, attempt: int, deadline: float, patience: float
+    ) -> float | None:
+        """Seconds to wait before the next attempt, or None to give up.
+
+        One policy for every failure: an error that says it is not retryable (``retryable is
+        False``, e.g. HTTP 400) fails at once. Otherwise the server's ``Retry-After`` wins over
+        the jittered backoff. Backoff retries are limited by ``max_retries`` and ``max_retry_s``;
+        waiting on a ``Retry-After`` does not use up a retry but must fit in both ``max_retry_s``
+        and ``MAX_RATE_LIMIT_WAIT_S``."""
+        if getattr(exc, "retryable", True) is False:
+            return None
+        after = getattr(exc, "retry_after", None)
+        if after is None:
+            if attempt >= self.max_retries:
+                return None
+            wait = backoff_delay(attempt)
+            limit = deadline
+        else:
+            wait = float(after) + random.uniform(0.0, min(1.0, 0.1 * float(after)))
+            limit = min(deadline, patience)
+        if time.monotonic() + wait > limit:
+            return None
+        return wait
 
     def _run(self) -> None:
         while True:
@@ -144,6 +243,8 @@ class BatchExporter:
             "exported": self.exported,
             "dropped": self.dropped,
             "failed": self.failed,
+            "throttled": self.throttled,
+            "redacted": self.redacted,
         }
 
 
@@ -154,3 +255,32 @@ def _flush_all() -> None:
             exp.flush(timeout=5.0)
         except Exception:  # noqa: BLE001
             pass
+
+
+def _reinit_after_fork() -> None:
+    for exp in list(_live):
+        exp._after_fork_in_child()
+    if "multiprocessing" in sys.modules:
+        _flush_on_multiprocessing_exit()
+
+
+def _flush_on_multiprocessing_exit() -> None:
+    """``multiprocessing`` children skip ``atexit``; register a finalizer instead. The child
+    clears its finalizer registry after this fork hook runs, so register from an after-fork
+    callback, which runs once the child has finished setting up."""
+    from multiprocessing import util
+
+    def register(_: object) -> None:
+        util.Finalize(None, _flush_all, exitpriority=100)
+
+    util.register_after_fork(_FORK_TOKEN, register)
+
+
+class _Token:
+    pass
+
+
+_FORK_TOKEN = _Token()  # weak-referenceable owner for the after-fork registration
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reinit_after_fork)

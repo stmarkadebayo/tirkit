@@ -100,3 +100,89 @@ test("prompts compile and link spans; feedback posts a score", async () => {
   assert.equal(fb.body.value, 1);
   assert.equal(fb.body.source, "user_feedback");
 });
+
+// Retry (plan A5): a fake server that answers 429 and 503.
+function scripted(script, opts = {}) {
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    calls.push({ t: Date.now(), names: JSON.parse(init.body).spans.map((s) => s.name) });
+    const [status, headers] = script.shift() ?? [200, {}];
+    return new Response(status === 200 ? '{"accepted":1}' : "{}", { status, headers });
+  };
+  tirkit.init({ host: "http://tirkit.test", publicKey: "pk", secretKey: "sk", fetch: fetchImpl, flushIntervalMs: 10_000, ...opts });
+  return calls;
+}
+
+test("429 honours Retry-After", async () => {
+  const calls = scripted([[429, { "retry-after": "1" }]]);
+  await tirkit.span("a", {}, async () => 1);
+  await tirkit.flush();
+  assert.equal(calls.length, 2);
+  const waited = calls[1].t - calls[0].t;
+  assert.ok(waited >= 950 && waited < 2000, `waited ${waited} ms`);
+  assert.equal(tirkit.stats().failed, 0);
+});
+
+test("503 backs off and then succeeds", async () => {
+  const calls = scripted([[503, {}], [503, {}]]);
+  await tirkit.span("b", {}, async () => 1);
+  await tirkit.flush();
+  assert.equal(calls.length, 3);
+  assert.equal(tirkit.stats().failed, 0);
+});
+
+test("retry time is bounded", async () => {
+  const calls = scripted(Array(1000).fill([503, {}]), { maxRetries: 1000, maxRetryMs: 1000 });
+  await tirkit.span("c", {}, async () => 1);
+  const t0 = Date.now();
+  await tirkit.flush();
+  assert.ok(Date.now() - t0 < 2500);
+  assert.ok(calls.length > 1);
+  assert.equal(tirkit.stats().failed, 1);
+});
+
+test("Retry-After beyond the budget gives up at once", async () => {
+  const calls = scripted([[429, { "retry-after": "3600" }]], { maxRetryMs: 2000 });
+  await tirkit.span("d", {}, async () => 1);
+  const t0 = Date.now();
+  await tirkit.flush();
+  assert.ok(Date.now() - t0 < 1000);
+  assert.equal(calls.length, 1);
+  assert.equal(tirkit.stats().failed, 1);
+});
+
+test("client errors are not retried", async () => {
+  const calls = scripted([[400, {}]]);
+  await tirkit.span("e", {}, async () => 1);
+  await tirkit.flush();
+  assert.equal(calls.length, 1);
+  assert.equal(tirkit.stats().failed, 1);
+});
+
+test("parseRetryAfter and jittered backoff", () => {
+  assert.equal(tirkit.parseRetryAfter("120"), 120);
+  assert.equal(tirkit.parseRetryAfter("soon"), null);
+  assert.equal(tirkit.parseRetryAfter(null), null);
+  const future = new Date(Date.now() + 30_000).toUTCString();
+  const s = tirkit.parseRetryAfter(future);
+  assert.ok(s >= 25 && s <= 31, String(s));
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const ceiling = Math.min(5000, 200 * 2 ** attempt);
+    const xs = Array.from({ length: 200 }, () => tirkit.backoffDelayMs(attempt));
+    assert.ok(xs.every((x) => x >= 0 && x <= ceiling));
+    assert.ok(Math.max(...xs) - Math.min(...xs) > ceiling * 0.5);
+  }
+});
+
+test("a 429 with Retry-After is waited out, not counted as a failure", async () => {
+  let calls = 0;
+  const fetchImpl = async (url) => {
+    calls++;
+    if (calls <= 5) return new Response("{}", { status: 429, headers: { "retry-after": "0" } });
+    return new Response(JSON.stringify({ accepted: 1 }), { status: 200 });
+  };
+  tirkit.init({ host: "http://tirkit.test", publicKey: "pk", secretKey: "sk", fetch: fetchImpl, flushIntervalMs: 10_000 });
+  await tirkit.span("limited", { kind: "tool" }, async () => 1);
+  await tirkit.flush();
+  assert.equal(calls, 6); // five 429s (more than the four normal attempts), then accepted
+});

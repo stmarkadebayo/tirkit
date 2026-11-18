@@ -18,6 +18,7 @@ export type Member = Schemas["Member"];
 export type ApiKeyInfo = Schemas["ApiKeyInfo"];
 export type Trace = Schemas["Trace"];
 export type Span = Schemas["Span"];
+export type SpanSummary = Schemas["SpanSummary"];
 export type Score = Schemas["ScoreRow"];
 export type TraceList = Schemas["TraceList"];
 export type TraceDetail = Schemas["TraceDetail"];
@@ -52,6 +53,8 @@ export type Alert = Schemas["Alert"];
 export type AlertList = Schemas["AlertList"];
 export type JudgeReport = Schemas["JudgeReport"];
 export type JudgeReports = Schemas["JudgeReports"];
+export type AuditEntry = Schemas["AuditEntry"];
+export type AuditPage = Schemas["AuditPage"];
 
 export class ApiError extends Error {
   constructor(

@@ -5,6 +5,8 @@ Usage units (all optional, non-negative):
 - ``input_tokens``: all input tokens, every modality, cached or not.
 - ``cached_input_tokens``, ``cache_write_tokens``, ``input_audio_tokens``: subsets of input tokens.
 - ``output_tokens``: all output tokens; ``output_audio_tokens`` is a subset.
+- ``reasoning_tokens``: the subset of output tokens spent on reasoning (thinking). Recorded for
+  analysis only: providers bill them as output tokens, so they are not priced separately.
 - ``input_audio_seconds``, ``output_audio_seconds``: speech-to-text input, text-to-speech output.
 - ``input_characters``, ``output_characters``: e.g. text-to-speech input.
 - ``input_images``, ``output_images``: e.g. image generation.
@@ -38,6 +40,8 @@ UNITS = (
     "requests",
 )
 
+_PROVIDER_PREFIXES = ("mistral", "cohere", "vertex_ai")
+_REGION_PREFIXES = ("us.", "eu.", "apac.", "global.", "jp.")
 _overrides: dict[str, dict[str, float]] = {}
 _lock = threading.Lock()
 
@@ -69,6 +73,12 @@ def lookup_price(model: str) -> dict[str, float] | None:
     candidates = [model]
     if "/" in model:
         candidates.append(model.split("/", 1)[1])
+    else:
+        # LiteLLM's table names some providers' models with a prefix (``mistral/...``).
+        candidates.extend(f"{p}/{model}" for p in _PROVIDER_PREFIXES)
+    for region in _REGION_PREFIXES:  # Bedrock cross-region inference profiles: us.amazon.nova...
+        if model.startswith(region):
+            candidates.append(model[len(region) :])
     for table in tables:
         for name in candidates:
             if name in table:

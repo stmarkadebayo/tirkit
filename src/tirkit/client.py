@@ -8,7 +8,8 @@ from typing import Any
 
 from tirkit.exporter import BatchExporter
 from tirkit.media import LocalMediaStore, MediaStore
-from tirkit.tracing import set_default_sink
+from tirkit.redact import MODES
+from tirkit.tracing import set_default_sink, set_sampling
 
 _client: Tirkit | None = None
 
@@ -47,6 +48,9 @@ def init(
     media_dir: str | Path | None = None,
     project: str | None = None,
     max_queue: int = 10_000,
+    sample_rate: float | None = None,
+    sampling_rules: list[Any] | None = None,
+    redact: str | None = None,
 ) -> Tirkit:
     """Start tracing.
 
@@ -54,7 +58,18 @@ def init(
       ``tirkit.db``) and media to ``media_dir`` (default: ``tirkit-media`` next to the database).
     - Server mode: pass ``host`` (or set ``$TIRKIT_HOST``) plus API keys
       (``$TIRKIT_PUBLIC_KEY`` / ``$TIRKIT_SECRET_KEY``); spans are sent over HTTP.
+    - Sampling: ``sample_rate`` (else ``$TIRKIT_SAMPLE_RATE``, else 1) keeps that fraction of
+      traces, whole; ``sampling_rules`` set rates by root span name or kind, e.g.
+      ``[{"name": "health*", "rate": 0}]``. Failed spans are always kept. See
+      :func:`tirkit.tracing.set_sampling`.
+
+    ``redact`` (or ``$TIRKIT_REDACT``): ``"off"``, ``"secrets"`` or ``"strict"`` redacts span
+    input, output, attributes and errors in the SDK's background thread, before anything is
+    written or sent. The default is no SDK-side redaction (the server applies its project's mode).
     """
+    redact = redact or os.environ.get("TIRKIT_REDACT") or None
+    if redact is not None and redact not in MODES:
+        raise ValueError(f"redact must be one of {MODES}")
     global _client
     if _client is not None:
         _client.shutdown()
@@ -69,7 +84,9 @@ def init(
         )
         from tirkit.http import RemoteStore
 
-        exporter = BatchExporter(http, media_store=http.media_store(), max_queue=max_queue)
+        exporter = BatchExporter(
+            http, media_store=http.media_store(), max_queue=max_queue, redact=redact
+        )
         _client = Tirkit(
             exporter=exporter, store=RemoteStore(http), media_store=http.media_store(), http=http
         )
@@ -80,8 +97,11 @@ def init(
         store = SQLiteStore(db, project_id=project or DEFAULT_PROJECT)
         store.init_schema()
         media = LocalMediaStore(media_dir or db.parent / "tirkit-media")
-        exporter = BatchExporter(store, media_store=media, max_queue=max_queue)
+        exporter = BatchExporter(store, media_store=media, max_queue=max_queue, redact=redact)
         _client = Tirkit(exporter=exporter, store=store, media_store=media)
+    if sample_rate is None and os.environ.get("TIRKIT_SAMPLE_RATE"):
+        sample_rate = float(os.environ["TIRKIT_SAMPLE_RATE"])
+    set_sampling(1.0 if sample_rate is None else sample_rate, sampling_rules)
     set_default_sink(_client.exporter)
     return _client
 

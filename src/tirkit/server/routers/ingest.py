@@ -3,6 +3,10 @@
 The span routes parse their bodies by hand instead of through pydantic: validating every span
 with pydantic on the ingestion path would add latency for no gain, since ``Span.from_dict`` already
 ignores unknown fields. The request schema is still published (``IngestRequest``).
+
+Only reading the body happens on the event loop. Decoding, validation, pricing, redaction and the
+store write run in the thread pool, so a large batch or a slow database never stalls other
+requests (``/api/health`` included).
 """
 
 from __future__ import annotations
@@ -13,10 +17,11 @@ import re
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from starlette.concurrency import run_in_threadpool
 
 from tirkit import pricing
-from tirkit.media import LocalMediaStore
-from tirkit.redact import redact_obj
+from tirkit.media import LocalMediaStore, extract_media
+from tirkit.redact import SDK_REDACTIONS_ATTR, Redactor, mode_from_settings
 from tirkit.server import models as m
 from tirkit.server.deps import (
     Ctx,
@@ -24,6 +29,7 @@ from tirkit.server.deps import (
     app_media,
     app_settings,
     app_store,
+    basic_credentials,
     json_response,
     key_project,
     project_ctx,
@@ -31,6 +37,8 @@ from tirkit.server.deps import (
     read_body,
 )
 from tirkit.server.openapi import binary_body, json_body
+from tirkit.server.prometheus import count_spans
+from tirkit.server.security import enforce_ingest_limit
 from tirkit.server.settings import Settings
 from tirkit.store import SQLStore
 from tirkit.types import Span
@@ -41,21 +49,61 @@ _SHA = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _prepare(request: Request, spans: list[Span], pid: str) -> list[Span]:
-    """Validate ids, fill in cost from prices and apply the project's redaction setting."""
+    """Check the key's rate limit, validate ids, fill in cost from prices and apply the project's
+    redaction mode (counting redactions, including those the SDK made before sending)."""
+    creds = basic_credentials(request)
+    enforce_ingest_limit(request, creds[0] if creds else None, len(spans))
     st = project_settings(request, pid)
     store = app_store(request)
     overrides = app_cache(request).get("prices", pid, store.for_project(pid).get_prices)
     extra = [(p["pattern"], p.get("label", "[REDACTED]")) for p in st.get("redact_patterns") or []]
+    redactor = Redactor(mode_from_settings(st), extra)
+    sdk_count = 0
     for s in spans:
         if not s.trace_id or not s.span_id:
             raise HTTPException(400, "every span needs trace_id and span_id")
         if s.cost_usd is None and s.usage:
             s.cost_usd = pricing.cost(s.model, s.usage, overrides)
-        if st.get("redact"):
-            s.input = redact_obj(s.input, extra)
-            s.output = redact_obj(s.output, extra)
-            s.attributes = redact_obj(s.attributes, extra)
+        if redactor.mode != "off":
+            s.input = redactor.obj(s.input)
+            s.output = redactor.obj(s.output)
+            s.attributes = redactor.obj(s.attributes)
+        n = s.attributes.get(SDK_REDACTIONS_ATTR) if s.attributes else None
+        if isinstance(n, int) and not isinstance(n, bool) and 0 < n < 1_000_000:
+            sdk_count += n
+    if redactor.count or sdk_count:
+        store.for_project(pid).add_redactions(redactor.count + sdk_count)
     return spans
+
+
+class _ProjectMedia:
+    """Media store for one project: writes the bytes and records them for the project."""
+
+    def __init__(self, media: LocalMediaStore, st: SQLStore) -> None:
+        self.media = media
+        self.st = st
+
+    def put(self, data: bytes, mime: str) -> dict[str, Any]:
+        ref = self.media.put(data, mime)
+        self.st.record_media(ref["sha256"], mime, len(data))
+        return ref
+
+    def get(self, sha256: str) -> bytes | None:
+        return self.media.get(sha256)
+
+
+def save_otlp_spans(request: Any, pid: str, spans: list[Span]) -> None:
+    """Store spans that arrived over OTLP (HTTP or gRPC) with the same treatment the SDK path
+    gets: inline base64 media moved to the media store (the SDK does this before sending),
+    then cost and redaction (:func:`_prepare`). ``request`` needs only ``.app``."""
+    st = app_store(request).for_project(pid)
+    media = _ProjectMedia(app_media(request), st)
+    for s in spans:
+        s.input = extract_media(s.input, media)
+        s.output = extract_media(s.output, media)
+        s.attributes = extract_media(s.attributes, media)
+    st.save_spans(_prepare(request, spans, pid))
+    count_spans(request, "otlp", len(spans))
 
 
 @router.post(
@@ -68,13 +116,19 @@ async def ingest(
     store: SQLStore = Depends(app_store),
 ) -> Response:
     body = await read_body(request, settings.max_ingest_bytes)
+    n = await run_in_threadpool(_ingest_json, request, body, pid, store)
+    return json_response({"accepted": n})
+
+
+def _ingest_json(request: Request, body: bytes, pid: str, store: SQLStore) -> int:
     try:
         data = json.loads(body)
         spans = [Span.from_dict(d) for d in data.get("spans", [])]
     except (ValueError, TypeError, AttributeError) as exc:
         raise HTTPException(400, f"invalid payload: {exc}") from exc
     store.for_project(pid).save_spans(_prepare(request, spans, pid))
-    return json_response({"accepted": len(spans)})
+    count_spans(request, "spans", len(spans))
+    return len(spans)
 
 
 @router.post(
@@ -93,18 +147,22 @@ async def otlp_traces(
     store: SQLStore = Depends(app_store),
 ) -> Response:
     """OpenTelemetry exporters post here (``OTEL_EXPORTER_OTLP_ENDPOINT=<server>``)."""
-    from tirkit.otel import decode_request
-
     body = await read_body(request, settings.max_ingest_bytes)
     ctype = request.headers.get("content-type", "application/x-protobuf")
+    await run_in_threadpool(_ingest_otlp, request, body, ctype, pid, store)
+    if "json" in ctype:
+        return Response("{}", media_type="application/json")
+    return Response(b"", media_type="application/x-protobuf")
+
+
+def _ingest_otlp(request: Request, body: bytes, ctype: str, pid: str, store: SQLStore) -> None:
+    from tirkit.otel import decode_request
+
     try:
         spans = decode_request(body, ctype)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(400, f"invalid OTLP payload: {exc}") from exc
-    store.for_project(pid).save_spans(_prepare(request, spans, pid))
-    if "json" in ctype:
-        return Response("{}", media_type="application/json")
-    return Response(b"", media_type="application/x-protobuf")
+    save_otlp_spans(request, pid, spans)
 
 
 @router.put(
@@ -124,12 +182,19 @@ async def put_media(
     if not _SHA.match(sha256):
         raise HTTPException(400, "bad hash")
     data = await read_body(request, settings.max_media_bytes)
+    mime = request.headers.get("content-type") or "application/octet-stream"
+    await run_in_threadpool(_store_media, data, sha256, mime, pid, store, media)
+    return json_response({"sha256": sha256, "size": len(data)}, 201)
+
+
+def _store_media(
+    data: bytes, sha256: str, mime: str, pid: str, store: SQLStore, media: LocalMediaStore
+) -> None:
+    """Hashing and writing a large upload happen off the event loop."""
     if hashlib.sha256(data).hexdigest() != sha256:
         raise HTTPException(400, "content does not match hash")
-    mime = request.headers.get("content-type") or "application/octet-stream"
     media.put(data, mime)
     store.for_project(pid).record_media(sha256, mime, len(data))
-    return json_response({"sha256": sha256, "size": len(data)}, 201)
 
 
 MEDIA_RESPONSE: dict[int | str, dict[str, Any]] = {

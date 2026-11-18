@@ -4,6 +4,7 @@ Run: python research/benchmarks/bench_tracing.py [--n 10000]
 Times each call with perf_counter_ns: a bare no-op function versus the same function inside
 tirkit.span() with a realistic LLM payload (messages in, text out, token usage, cost lookup).
 Reports p50/p99 of each and the added latency (traced minus bare, per percentile).
+``--redact secrets|strict`` turns on SDK-side redaction, which runs in the exporter thread.
 """
 
 from __future__ import annotations
@@ -31,9 +32,15 @@ def noop() -> str:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=10_000)
+    ap.add_argument(
+        "--redact",
+        choices=["off", "secrets", "strict"],
+        default=None,
+        help="SDK-side redaction in the exporter thread (default: none)",
+    )
     args = ap.parse_args()
     with tempfile.TemporaryDirectory() as tmp:
-        client = tirkit.init(path=Path(tmp) / "bench.db", max_queue=args.n * 2)
+        client = tirkit.init(path=Path(tmp) / "bench.db", max_queue=args.n * 2, redact=args.redact)
         messages = [
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": "What is the capital of France? " * 5},
@@ -66,6 +73,8 @@ def main() -> None:
 
     result = {
         "n": args.n,
+        "redact": args.redact,
+        "redacted_values": stats.get("redacted", 0),
         "bare_p50_ms": pct(bare, 0.5),
         "bare_p99_ms": pct(bare, 0.99),
         "traced_p50_ms": pct(traced, 0.5),

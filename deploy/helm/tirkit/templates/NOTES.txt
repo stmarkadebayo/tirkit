@@ -1,0 +1,16 @@
+Tirkit is starting.
+
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "tirkit.fullname" . }}-server
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "tirkit.fullname" . }} 8000:{{ .Values.service.port }}
+
+Then open http://localhost:8000 and create the first admin (unless config.adminEmail was set).
+Health: /api/health. {{ if .Values.metrics.enabled }}Prometheus metrics: /metrics on the same port.{{ end }}
+{{- if .Values.postgresql.enabled }}
+
+The bundled Postgres is a single instance for trials and small installs. Back it up with
+`tirkit backup` (see docs/site/operations.md) or use a managed Postgres in production.
+{{- end }}
+{{- if and .Values.media.persistence.enabled (eq .Values.media.persistence.accessMode "ReadWriteOnce") }}
+
+media.persistence.accessMode is ReadWriteOnce: all server and worker pods must land on one node.
+{{- end }}

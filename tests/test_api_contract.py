@@ -79,6 +79,7 @@ def _seed(c: TestClient, webhook_url: str) -> Seed:
     r = c.post("/api/v1/ingest", json={"spans": spans}, headers=key)
     assert r.status_code == 200, r.text
     s.ids["trace_id"] = spans[0]["trace_id"]
+    s.ids["span_id"] = spans[1]["span_id"]
 
     # Media.
     import hashlib
@@ -173,6 +174,14 @@ CALLS: list[tuple[str, str, dict[str, Any], int]] = [
     ),
     ("GET", "/api/projects/{project_id}/keys", {}, 200),
     ("POST", "/api/projects/{project_id}/keys", {"json": {"name": "ci"}}, 201),
+    (
+        "POST",
+        "/api/projects/{project_id}/keys/{public_key}/rotate",
+        {"json": {"overlap_s": 60}},
+        201,
+    ),
+    ("GET", "/api/projects/{project_id}/audit", {"params": {"limit": 5}}, 200),
+    ("GET", "/api/admin/audit", {"params": {"action": "key."}}, 200),
     ("GET", "/api/projects/{project_id}/prices", {}, 200),
     (
         "PUT",
@@ -199,6 +208,8 @@ CALLS: list[tuple[str, str, dict[str, Any], int]] = [
     ),
     ("GET", "/api/projects/{project_id}/traces", {}, 200),
     ("GET", "/api/projects/{project_id}/traces/{trace_id}", {}, 200),
+    ("GET", "/api/projects/{project_id}/traces/{trace_id}", {"params": {"full": "1"}}, 200),
+    ("GET", "/api/projects/{project_id}/traces/{trace_id}/spans/{span_id}", {}, 200),
     ("GET", "/api/projects/{project_id}/spans", {}, 200),
     ("GET", "/api/projects/{project_id}/sessions", {}, 200),
     (

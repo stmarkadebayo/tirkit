@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, projectPath, type ApiKeyInfo as Key, type Member, type Project } from "../api";
 import { usePid, useRole } from "../hooks";
 import { fmtAgo } from "../format";
+import { REDACT_MODES, effectiveMode, redactionCounterText, type RedactMode } from "../redaction";
 
 export default function Settings() {
   const pid = usePid();
@@ -38,12 +39,33 @@ function Keys({ pid }: { pid: string }) {
   const keys = useQuery({ queryKey: ["keys", pid], queryFn: () => api<Key[]>(projectPath(pid, "/keys")) });
   const [created, setCreated] = useState<{ public_key: string; secret_key: string } | null>(null);
   const [name, setName] = useState("");
+  const [days, setDays] = useState("");
+  const [err, setErr] = useState("");
   const host = window.location.origin;
   const create = async () => {
-    const r = await api<{ public_key: string; secret_key: string }>(projectPath(pid, "/keys"), { method: "POST", json: { name: name || null } });
-    setCreated(r);
-    setName("");
-    void qc.invalidateQueries({ queryKey: ["keys", pid] });
+    setErr("");
+    try {
+      const expires_at = days ? Date.now() / 1000 + Number(days) * 86400 : null;
+      const r = await api<{ public_key: string; secret_key: string }>(projectPath(pid, "/keys"), { method: "POST", json: { name: name || null, expires_at } });
+      setCreated(r);
+      setName("");
+      setDays("");
+      void qc.invalidateQueries({ queryKey: ["keys", pid] });
+    } catch (e) {
+      setErr(String(e));
+    }
+  };
+  const rotate = async (pk: string) => {
+    const hours = prompt("Keep the old key working for how many hours? (0 revokes it now)", "24");
+    if (hours === null) return;
+    setErr("");
+    try {
+      const r = await api<{ public_key: string; secret_key: string }>(projectPath(pid, `/keys/${pk}/rotate`), { method: "POST", json: { overlap_s: Number(hours) * 3600 } });
+      setCreated(r);
+      void qc.invalidateQueries({ queryKey: ["keys", pid] });
+    } catch (e) {
+      setErr(String(e));
+    }
   };
   const revoke = async (pk: string) => {
     if (!confirm(`Revoke ${pk}? Apps using it will stop sending traces.`)) return;
@@ -84,6 +106,7 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS=Authorization=Basic%20${btoa(`${created.public
             <th>Name</th>
             <th>Created</th>
             <th>Last used</th>
+            <th>Expires</th>
             <th />
           </tr>
         </thead>
@@ -94,7 +117,20 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS=Authorization=Basic%20${btoa(`${created.public
               <td>{k.name}</td>
               <td className="small muted">{fmtAgo(k.created)}</td>
               <td className="small muted">{k.last_used ? fmtAgo(k.last_used) : "never"}</td>
-              <td>
+              <td className="small muted">
+                {k.expired ? (
+                  <span className="badge">expired</span>
+                ) : k.expires_at ? (
+                  <>
+                    {new Date(k.expires_at * 1000).toLocaleString()}
+                    {k.rotated_to && <span className="badge" title={`replaced by ${k.rotated_to}`}>rotated</span>}
+                  </>
+                ) : (
+                  "never"
+                )}
+              </td>
+              <td className="row">
+                {!k.expired && !k.rotated_to && <button onClick={() => rotate(k.public_key)}>Rotate</button>}
                 <button className="danger" onClick={() => revoke(k.public_key)}>Revoke</button>
               </td>
             </tr>
@@ -103,8 +139,10 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS=Authorization=Basic%20${btoa(`${created.public
       </table>
       <div className="row" style={{ marginTop: 10 }}>
         <input placeholder="Key name (e.g. production)" value={name} onChange={(e) => setName(e.target.value)} />
+        <input type="number" min={1} placeholder="Expires in days (optional)" value={days} onChange={(e) => setDays(e.target.value)} style={{ width: 190 }} aria-label="Expires in days" />
         <button className="primary" onClick={create}>Create API key</button>
       </div>
+      {err && <div className="error-box">{err}</div>}
     </div>
   );
 }
@@ -188,15 +226,13 @@ function DataSettings({ pid }: { pid: string }) {
       setMsg(String(e));
     }
   };
+  const mode = effectiveMode(s);
   const patternText = patterns ?? (s.redact_patterns ?? []).map((p) => `${p.pattern} => ${p.label ?? "[REDACTED]"}`).join("\n");
   return (
     <div className="panel">
       <h2>Data</h2>
       <div className="grid">
-        <label className="row">
-          <input type="checkbox" checked={!!s.redact} onChange={(e) => save({ redact: e.target.checked })} />
-          Redact PII (emails, phones, cards, API keys, IPs, IBANs) in inputs and outputs before they are stored
-        </label>
+        <RedactionControl mode={mode} count={project.data?.redactions} onChange={(m) => save({ redact_mode: m })} />
         <div>
           <div className="small muted">Extra redaction patterns, one per line: <code>regex =&gt; [LABEL]</code></div>
           <textarea rows={3} value={patternText} onChange={(e) => setPatterns(e.target.value)} />
@@ -244,6 +280,34 @@ function DataSettings({ pid }: { pid: string }) {
         {msg && <div className="small muted">{msg}</div>}
       </div>
     </div>
+  );
+}
+
+function RedactionControl({ mode, count, onChange }: { mode: RedactMode; count: number | undefined; onChange: (m: RedactMode) => void }) {
+  return (
+    <fieldset className="mode-group">
+      <legend>PII redaction</legend>
+      <p className="muted small" style={{ margin: "0 0 8px" }}>
+        Applied to inputs, outputs and attributes before they are stored. Changing it affects new traces only.
+      </p>
+      <div className="mode-options">
+        {REDACT_MODES.map((m) => (
+          <label key={m.mode} className={`mode-option${m.mode === mode ? " on" : ""}`}>
+            <input type="radio" name="redact_mode" value={m.mode} checked={m.mode === mode} onChange={() => onChange(m.mode)} />
+            <span>
+              <b>{m.title}</b>
+              <span className="small muted block">{m.summary}</span>
+              <span className="small muted block">{m.catches}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      <p className="small" style={{ margin: "8px 0 0" }}>{redactionCounterText(count, mode)}</p>
+      <p className="small muted" style={{ margin: "4px 0 0" }}>
+        Redaction by the server happens after your data reaches it. To keep values from leaving your process at all, redact in the SDK:{" "}
+        <code>tirkit.init(redact="strict")</code> or <code>TIRKIT_REDACT=strict</code>. Redaction matches patterns; it does not understand names or addresses.
+      </p>
+    </fieldset>
   );
 }
 

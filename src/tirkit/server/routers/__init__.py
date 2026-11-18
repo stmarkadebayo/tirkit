@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from tirkit.server.routers import (
+    admin,
     annotation,
     datasets,
     experiments,
@@ -26,4 +27,5 @@ ROUTERS: list[APIRouter] = [
     prompts.router,
     annotation.router,
     online.router,
+    admin.router,
 ]

@@ -28,4 +28,5 @@
 # Deploy and CI
 /Dockerfile                         @stmarkadebayo
 /docker-compose.yml                 @stmarkadebayo
+/deploy/                            @stmarkadebayo
 /.github/                           @stmarkadebayo

@@ -4,7 +4,8 @@ Inputs are human-labelled items: ``{"input", "output", "labels": {name: value}}`
 an annotation queue, or your own JSONL). The report compares a judge's scores with the human
 label on the same items:
 
-- **Cohen's kappa** on the labels as given and **quadratic-weighted kappa** for ordinal 1–5 scores;
+- **Cohen's kappa** on the labels as given, with a 95% bootstrap interval, and
+  **quadratic-weighted kappa** for ordinal 1–5 scores;
   pass/fail kappa after mapping scores ≥ ``pass_at`` to pass;
 - **exact agreement** and mean absolute difference;
 - **length bias**: Spearman correlation of output length (words) with the judge score, next to the
@@ -132,7 +133,9 @@ def reliability_report(
         j = [x[2] for x in both]
         report["exact_agreement"] = sum(a == b for a, b in zip(h, j, strict=True)) / len(both)
         report["mean_abs_diff"] = stats.mean([abs(a - b) for a, b in zip(h, j, strict=True)])
-        report["kappa"] = stats.cohen_kappa([round(x) for x in h], [round(x) for x in j])
+        rh, rj = [round(x) for x in h], [round(x) for x in j]
+        report["kappa"] = stats.cohen_kappa(rh, rj)
+        report["kappa_ci_low"], report["kappa_ci_high"] = stats.kappa_ci(rh, rj)
         ordinal = all(float(x).is_integer() for x in h + j)
         if ordinal:
             report["weighted_kappa"] = stats.weighted_kappa(

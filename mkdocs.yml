@@ -9,10 +9,14 @@ nav:
   - Concepts: concepts.md
   - Python SDK: python-sdk.md
   - TypeScript SDK: typescript-sdk.md
+  - Bring your own OpenTelemetry: opentelemetry.md
   - Integrations: integrations.md
   - Evaluating changes: evaluation.md
   - Self-hosting: self-hosting.md
+  - Operations: operations.md
+  - Security: security.md
   - HTTP API: api.md
+  - The web interface: web-ui.md
 theme:
   name: material
   features: [navigation.sections, content.code.copy]
@@ -23,4 +27,9 @@ theme:
     - scheme: slate
       primary: deep purple
       toggle: {icon: material/weather-sunny, name: Light mode}
-markdown_extensions: [tables, admonition, pymdownx.superfences]
+markdown_extensions:
+  - tables
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true

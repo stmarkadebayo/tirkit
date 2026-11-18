@@ -3,11 +3,33 @@
   "version": "0.1.0",
   "description": "Tirkit tracing SDK for Node.js: spans, OpenAI auto-instrumentation, feedback and prompts.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stmarkadebayo/tirkit.git",
+    "directory": "sdk-ts"
+  },
+  "homepage": "https://github.com/stmarkadebayo/tirkit/tree/main/sdk-ts#readme",
+  "bugs": {
+    "url": "https://github.com/stmarkadebayo/tirkit/issues"
+  },
+  "keywords": [
+    "llm",
+    "observability",
+    "tracing",
+    "evals",
+    "opentelemetry"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist", "README.md", "LICENSE"],
-  "engines": { "node": ">=18" },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test test/"

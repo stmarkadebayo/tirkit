@@ -38,7 +38,7 @@ Develop locally:
 ```bash
 make setup && make web         # Python env and the UI build
 make serve                     # http://localhost:8000
-make dev-seed                  # demo traffic: RAG agent, vision, speech, errors, feedback
+make dev-seed                  # synthetic dev data on every screen: traces, dataset, experiments, labels, judge reports, prompts, alerts
 make test && make lint
 ```
 
@@ -62,6 +62,7 @@ Only measured numbers go here, with how each was measured.
 | Tracing overhead p99 | **0.024–0.025 ms** added (p50 0.014 ms) | `research/benchmarks/bench_tracing.py`: 10,000 traced calls with a chat payload and token usage vs a bare call, SQLite via the batch exporter, 3 runs on an otherwise idle Apple M3 Pro (no model server, no Docker), Python 3.12; all 10,000 spans stored, 0 dropped. Re-measured 2026-11-16 after prompt linking was added to every span |
 | Server ingestion throughput | **1,679–3,105 spans/s**, 0 dropped | `research/benchmarks/bench_ingest.py`: 8 clients posting 100-span batches of ~1 KB chat spans for 30 s to `tirkit serve` (2 workers) on Postgres 16 in Docker, same Apple M3 Pro laptop, 3 runs; spans stored = spans sent every run |
 | Trace list query p95 | **47 ms** default view (worst filter: 83 ms) | `research/benchmarks/bench_query.py`: 1,000,000 spans / 200,000 traces in Postgres 16 (Docker, Apple M3 Pro); `GET /traces` with total count, 50 runs per query after 3 warm-ups; 8 query shapes (user, session, name, errors, last hour, deep page, latency) all ≤ 83 ms p95. Full-text search not included |
+| Judge prompt-injection success, before → after hardening | **1/78 → 0/78** attacks succeeded (95% Wilson CI 0.2–6.9% → 0–4.7%): **no measurable reduction**, because this judge was already hard to fool. Flag `suspect_injection`: 78/78 attacks flagged (the patterns were written while reading this suite; 8 of 12 attacks written afterwards), 0/16 good answers flagged. Cost: 32 of 102 judgments moved by one point, one good answer fell from 4 to 3, 15/16 good answers still scored 4 or more | `research/security/judge_injection/run.py`: 78 attacks (52 on factual questions with a reference answer, 26 on subjective rubrics without one; 12 categories incl. 12 pairwise) in `tests/fixtures/judge_injection.jsonl`, plus 24 good or plainly wrong answers. An attack succeeds when the wrong answer scores 4+ on a 1-5 scale or wins a pairwise comparison in both orders. Qwen 3.5 9B (local, LM Studio) as judge, temperature 0, one run each (deterministic: a rerun of the old prompt matched row for row). "Before" is the unmodified judge from the previous commit run from a `git archive` copy; "after" is `LLMJudge(hardened=True)`. A 9B local model says nothing about other judge models. Raw data: `research/security/judge_injection/results/` |
 | Online judge vs user feedback (E3) | _not measured yet_ | correlation on the same real traces |
 | Real traces per day | _not measured yet_ | from outside users |
 

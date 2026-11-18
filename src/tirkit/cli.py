@@ -239,6 +239,20 @@ def traces_show(trace_id: str, db: str | None = DB_OPTION) -> None:
         typer.echo(f"{pad}- {s.name} [{s.kind}] {s.duration_ms or 0:.1f}ms{extra}{cost} {s.status}")
 
 
+def _shared_metrics_dir() -> None:
+    """Several server processes share Prometheus counters through files in one directory
+    (``$PROMETHEUS_MULTIPROC_DIR``); files left by a previous run are removed first."""
+    import tempfile
+
+    path = os.environ.get("PROMETHEUS_MULTIPROC_DIR")
+    if not path:
+        os.environ["PROMETHEUS_MULTIPROC_DIR"] = tempfile.mkdtemp(prefix="tirkit-metrics-")
+        return
+    Path(path).mkdir(parents=True, exist_ok=True)
+    for stale in Path(path).glob("*.db"):
+        stale.unlink()
+
+
 @app.command()
 def serve(
     host: str = typer.Option("127.0.0.1", help="Interface to bind."),
@@ -248,6 +262,9 @@ def serve(
     ),
     media_dir: Path | None = typer.Option(None, help="Where media files are stored."),
     workers: int = typer.Option(1, help="Uvicorn worker processes."),
+    otlp_grpc_port: int | None = typer.Option(
+        None, help='Also receive OTLP over gRPC on this port (needs "tirkit[otlp-grpc]").'
+    ),
 ) -> None:
     """Run the Tirkit server (API, OTLP ingest and web UI).
 
@@ -261,9 +278,16 @@ def serve(
         os.environ["TIRKIT_DATABASE_URL"] = database_url
     if media_dir:
         os.environ["TIRKIT_MEDIA_DIR"] = str(media_dir)
+    if otlp_grpc_port is not None:
+        if workers > 1:
+            raise typer.BadParameter("--otlp-grpc-port needs a single server worker")
+        os.environ["TIRKIT_OTLP_GRPC_PORT"] = str(otlp_grpc_port)
+        os.environ.setdefault("TIRKIT_OTLP_GRPC_HOST", host)
     if workers > 1 and os.environ.get("TIRKIT_EMBEDDED_WORKER") is None:
         os.environ["TIRKIT_EMBEDDED_WORKER"] = "0"  # one worker per process would be wasteful
         typer.echo("Multiple server workers: run `tirkit worker` separately for background jobs.")
+    if workers > 1:
+        _shared_metrics_dir()
     if host in ("127.0.0.1", "localhost") and "TIRKIT_INSECURE_COOKIES" not in os.environ:
         os.environ["TIRKIT_INSECURE_COOKIES"] = "1"  # plain-HTTP local use
     typer.echo(f"Tirkit server on http://{host}:{port}  (API docs: /api/docs)")
@@ -337,6 +361,104 @@ def judge_report(
     typer.echo(render_reliability(rep))
     if out:
         out.write_text(json.dumps({"report": rep, "rows": scored}, indent=1, default=str))
+
+
+def _ops_database_url(database_url: str | None) -> str:
+    url = database_url or os.environ.get("TIRKIT_DATABASE_URL") or os.environ.get("TIRKIT_DB_PATH")
+    if not url:
+        raise typer.BadParameter(
+            "name the database: --database-url, $TIRKIT_DATABASE_URL or $TIRKIT_DB_PATH",
+            param_hint="--database-url",
+        )
+    return url
+
+
+def _ops_media_dir(media_dir: Path | None, no_media: bool) -> Path | None:
+    if no_media:
+        return None
+    if media_dir:
+        return media_dir
+    env = os.environ.get("TIRKIT_MEDIA_DIR")
+    return Path(env) if env else None
+
+
+OPS_DB_OPTION = typer.Option(
+    None,
+    "--database-url",
+    help="postgresql://... or a SQLite path (default: $TIRKIT_DATABASE_URL, then $TIRKIT_DB_PATH).",
+)
+OPS_MEDIA_OPTION = typer.Option(None, help="Media directory (default: $TIRKIT_MEDIA_DIR).")
+
+
+@app.command()
+def backup(
+    out: Path = typer.Argument(..., help="New or empty directory to write the backup into."),
+    database_url: str | None = OPS_DB_OPTION,
+    media_dir: Path | None = OPS_MEDIA_OPTION,
+    no_media: bool = typer.Option(False, "--no-media", help="Back up the database only."),
+    sample: int = typer.Option(100, help="Rows per table hashed into the manifest."),
+) -> None:
+    """Back up the database and media files. Safe while the server is running.
+
+    SQLite uses the online backup API; Postgres uses ``pg_dump`` (custom format) inside an
+    exported snapshot. Media files are copied and listed by SHA-256 in ``manifest.json``.
+    """
+    from tirkit.store.backup import BackupError
+    from tirkit.store.backup import backup as run_backup
+
+    url = _ops_database_url(database_url)
+    media = _ops_media_dir(media_dir, no_media)
+    try:
+        manifest = run_backup(url, out, media_dir=media, sample=sample)
+    except BackupError as exc:
+        typer.echo(f"backup failed: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    tables = manifest["tables"]
+    spans = tables.get("spans", {}).get("rows", 0)
+    traces = tables.get("traces", {}).get("rows", 0)
+    typer.echo(
+        f"backup written to {out} ({manifest['dialect']}, schema v{manifest['schema_version']}): "
+        f"{spans} spans, {traces} traces, {len(tables)} tables, {manifest['db_bytes']} bytes "
+        f"in {manifest['duration_s']} s"
+    )
+    m = manifest["media"]
+    if m is None:
+        typer.echo("media: not included")
+    else:
+        typer.echo(f"media: {len(m['files'])} files, {m['bytes']} bytes")
+        if m["missing"]:
+            typer.echo(f"warning: {len(m['missing'])} media rows have no file", err=True)
+        if m["corrupt"]:
+            typer.echo(
+                f"warning: {len(m['corrupt'])} media files fail their hash and were skipped",
+                err=True,
+            )
+
+
+@app.command()
+def restore(
+    backup_dir: Path = typer.Argument(..., help="A directory written by `tirkit backup`."),
+    database_url: str | None = OPS_DB_OPTION,
+    media_dir: Path | None = OPS_MEDIA_OPTION,
+    no_media: bool = typer.Option(False, "--no-media", help="Restore the database only."),
+    force: bool = typer.Option(False, help="Replace a target database that already has data."),
+) -> None:
+    """Restore a backup, then check every table against the manifest. Stop the server first."""
+    from tirkit.store.backup import BackupError
+    from tirkit.store.backup import restore as run_restore
+
+    url = _ops_database_url(database_url)
+    media = _ops_media_dir(media_dir, no_media)
+    try:
+        report = run_restore(backup_dir, url, media_dir=media, force=force)
+    except BackupError as exc:
+        typer.echo(f"restore failed: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(
+        f"restored and verified: {report['rows']} rows in {report['tables']} tables "
+        f"({report['dialect']}); media: {report['media_restored']} copied, "
+        f"{report['media_present']} already present"
+    )
 
 
 if __name__ == "__main__":

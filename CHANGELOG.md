@@ -6,12 +6,30 @@ All notable changes to Tirkit are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- `make dev-seed` now fills every screen of the web UI with synthetic, development-only data: traces, sessions, users, prompts, a three-version dataset, experiments with a regression, a human-labelled annotation queue, judge-reliability reports, online evaluators and alerts. It is deterministic, safe to run twice and needs no network or model (the judge is scripted). See `examples/seed_dev.py`.
+- `research/labelling/prepare_e1_queue.py` and `GUIDE.md`: prepare the 100 outputs of experiment E1 as traces, the `correct` score and an annotation queue, so the judge-vs-human labels can be collected in about an hour (`docs/E1.md`).
+
 ### Changed
 - Code is organised in enforced layers (core, storage, SDK, evaluation, services, delivery); `make lint` runs the import-linter contracts. Shared types live in `tirkit.types` and are still importable from their old modules.
 - `tirkit.store` is now a package and the server is split into per-domain routers; public imports are unchanged.
 - Request validation errors return 400 with `{"detail": "..."}` like every other error.
 - The web UI's API types are generated from the server's OpenAPI schema (`make api`).
 - Repository layout: `SPEC.md` and `PLAN.md` moved to `docs/`; contributor and policy files (`CONTRIBUTING.md`, `CLA.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`) moved to `.github/`; `benchmarks/`, `experiments/` and `evals/` moved under `research/`; tool caches and the built docs site go to `.cache/`.
+- `tirkit.otel` is a package (`tirkit.otel.mapping` holds the attribute tables); its public functions are unchanged. Instrumentation wrappers can now patch module-level functions and positional arguments (internal `CallSpec` options).
+- Model price lookup also tries `mistral/`, `cohere/` and `vertex_ai/` prefixed names and strips Bedrock region prefixes (`us.`, `eu.`...).
+- `GET /api/projects/{id}/traces/{trace_id}` now returns a light span tree (ids, parents, timings, tokens, cost, short previews, paged with an explicit `omitted` count); use `?full=1` for the previous shape or `.../spans/{span_id}` for one full span.
+- Ingestion decodes, validates and writes off the event loop, so `/api/health` stays fast while a slow batch is written.
+- SDK retries honour `Retry-After`, use jittered exponential backoff and stop after 30 s (Python and TypeScript); the Python exporter defaults to 5 retries instead of 3.
+- The trace page draws only the rows in view and shows every span of a trace, including spans in parent cycles, self-parents and orphans (previously these disappeared); the span tree is built without quadratic copying.
+- The LLM judge's hardened prompt (random delimiters, strict reply format) is off by default; `LLMJudge(hardened=True)` turns it on. The `suspect_injection` flag stays on in every mode.
+- The web UI opens on a new **Overview**: judge reliability first (agreement with human labels and its interval, or "not measured yet" with the label count), then experiments and the CI gate state, then traffic. The old Dashboard is still under Observe. The navigation is grouped Observe, Evaluate, Build.
+- **Judge reliability** is a readable result (headline kappa with its interval and a plain verdict, position and length bias as charts, label count, next step) instead of a nine-column table; the rubric editor is collapsed.
+- The **Traces** list draws only the rows in view and loads 200 at a time, so 10,000 rows scroll smoothly; filters are tiered (search, time range, status, then "More filters") and live in the URL; `j`/`k`, Enter, `x` and `/` work from the keyboard.
+- On phones the navigation is a menu button and a drawer; every page was checked at 375 px for page-level horizontal scroll.
+- Settings shows the redaction mode as three choices with what each removes, the redaction counter and a note about SDK-side redaction.
+- Web pages load on demand, which takes the charting library out of the first bundle.
+- Judge reliability reports now include a 95% bootstrap interval for kappa (`kappa_ci_low`, `kappa_ci_high`); reports stored earlier show no interval.
 
 ### Added
 - Complete OpenAPI schema: every route has request and response models; checked in as `docs/api/openapi.json` and kept current by CI.
@@ -59,6 +77,44 @@ All notable changes to Tirkit are recorded here. The format follows
 - Apache-2.0 licence, NOTICE, Contributor License Agreement and CLA bot.
 - Contributing guide, Code of Conduct, security policy, issue and pull-request templates.
 - Secret scanning (gitleaks) in CI.
+- `tirkit backup` and `tirkit restore`: SQLite online backup or Postgres `pg_dump` (custom format, in an exported snapshot), media files listed and checked by SHA-256, and a manifest of row counts and content hashes that `restore` verifies. `scripts/restore_drill.py` (backup, wipe, restore, compare) runs in CI weekly.
+- Prometheus metrics at `/metrics`: ingest requests by route, outcome and reason, spans accepted, ingest latency, ingest buffer depth, Postgres pool usage, job queue depth and age, judge spend. Optional bearer token (`TIRKIT_METRICS_TOKEN`); `TIRKIT_METRICS=0` turns them off. Counters are shared across `tirkit serve --workers N` processes.
+- Helm chart (`deploy/helm/tirkit`): server and worker Deployments, optional Postgres, Secret, probes on `/api/health`, HPA, PodDisruptionBudget, non-root pods with a read-only root filesystem. CI runs `helm lint` and `kubeconform`.
+- Operations guide (`docs/site/operations.md`): backups and the restore drill, monitoring, upgrades, retention, Kubernetes and measured sizing.
+- OpenTelemetry parity: OTLP spans get the same cost, redaction, session, user and media handling as SDK spans. One mapping module (`tirkit/otel/mapping.py`) covers the GenAI conventions, OpenInference, OpenLLMetry and the Vercel AI SDK; tested with real OTel exporters (Python HTTP and gRPC, Node) and the OpenInference, OpenLLMetry and OpenTelemetry OpenAI instrumentations.
+- Optional OTLP/gRPC receiver on its own port (`tirkit serve --otlp-grpc-port`, extra `tirkit[otlp-grpc]`), an OpenTelemetry Collector config (`examples/otel-collector.yaml`) and a "Bring your own OpenTelemetry" quickstart.
+- Auto-instrumentation for Amazon Bedrock (boto3, aioboto3), Mistral, Cohere, Vertex AI (legacy `vertexai` SDK) and LiteLLM.
+- Integrations for the OpenAI Agents SDK, LlamaIndex, DSPy and CrewAI (`tirkit.instrument("openai_agents" | "llamaindex" | "dspy" | "crewai")`).
+- Span kinds `vector_db`, `mcp_tool`, `human`, `computer_use`, `retry` and `fallback`; `tirkit.retry`, `tirkit.with_retry` and `tirkit.fallback` record attempts and the option that answered; `Span.mark_first_token()`.
+- Trace sampling: `tirkit.init(sample_rate=..., sampling_rules=[...])`, `TIRKIT_SAMPLE_RATE`; whole traces kept or dropped, failed spans always kept.
+- `reasoning_tokens` usage unit (OpenAI, Gemini, OTLP); dashboard metrics report prompt-cache hit rate, reasoning tokens and time to first token p50/p95.
+- First-run checklist on the Overview: create a key, copy a Python, TypeScript or OpenTelemetry snippet with the project's host and public key, watch "listening" turn into "Got it", then build a dataset, run an experiment, label 20 items and check judge reliability. Each step shows done or not done from real data; the list can be dismissed and disappears when everything is done.
+- Empty Traces, Datasets, Experiments, Annotation and Online evals screens offer a one-click path or a ready-to-copy snippet.
+- A release workflow (`.github/workflows/release.yml`) and `docs/RELEASING.md`: a version tag builds the wheel with the UI, checks it, and publishes to PyPI (trusted publishing), npm and GHCR.
+- CI builds the Docker image and runs `docker compose up` end to end (`.github/workflows/docker.yml`, `scripts/docker_smoke.py`): the UI loads, the first admin is created, a trace sent with the SDK arrives and `/metrics` answers.
 
 ### Fixed
 - Alerts created through the API without `window_s` showed "NaN min" in the UI.
+- Several server or worker processes starting together on a fresh Postgres database could fail while creating the schema; migrations now hold an advisory lock.
+- Fork-safe exporter, SQLite store and HTTP client: processes forked by Gunicorn, Celery or `multiprocessing` keep exporting their own spans, without deadlocks.
+- `GET /api/projects/{id}/traces/{trace_id}/spans/{span_id}` returns one span in full.
+- Tests that re-sending a batch (JSON, OTLP, reversed or split) leaves span and trace counts unchanged.
+- Vitest for the web UI (`npm test` in `web/`).
+- `research/benchmarks/bench_query.py` runs on SQLite or Postgres at any size (10M spans supported), seeds a 10,000-span trace and times trace opens.
+- The wheel now carries the web UI (`make dist` builds it into the package; CI checks the wheel with `scripts/check_wheel.py`), so `pip install "tirkit[server]" && tirkit serve` shows the UI instead of only the API.
+- `tirkit backup` on Postgres refuses a `pg_dump` newer than the server, with a message naming both versions: such a dump can contain settings an older server does not know and would fail to restore. CI now installs the Postgres 16 client tools for the server job, and `pip-audit` skips Tirkit's own package.
+- Tracing now fails open when the Tirkit server is down: `tirkit.init()` no longer calls the server (a refused connection used to crash the app at startup and a hanging server held it up for 30 s), and an outage is logged as one warning instead of a traceback per lost batch. `tests/test_fail_open.py` covers a refused, erroring and hanging server.
+- The npm package now carries its `repository` field and LICENSE (`npm publish --provenance` fails without the former), PyPI shows the project links, and `tests/test_packaging.py` checks both and that the Python and npm versions agree.
+
+### Security
+- Sign-in throttling per account, per address and server-wide with a progressive delay (never a permanent lock-out), generic errors and `Retry-After`; `TIRKIT_TRUSTED_PROXIES` for the real client address behind reverse proxies.
+- Per-API-key ingest limits (default 5,000 spans/s) answered with `429` and `Retry-After`; the Python and TypeScript SDKs wait and resend instead of dropping. Limits are shared across server processes through the database.
+- Rate limiter module with token bucket, sliding window and progressive delay on in-process and database backends.
+- Security headers on every response (CSP without inline script, `nosniff`, `Referrer-Policy`, frame-ancestors none, HSTS on HTTPS); CORS is same-origin unless `TIRKIT_CORS_ORIGINS` allows origins for the ingestion routes.
+- SSRF guard for alert webhooks: public addresses only (including IPv6 and numeric-host tricks), DNS pinned, no redirects, timeout and size cap; `TIRKIT_ALLOW_PRIVATE_WEBHOOKS=1` to opt out.
+- Append-only audit log (sign-ins, keys, members, settings, exports, deletes) with an admin API and an **Audit log** page.
+- API key rotation with an overlap window, optional expiry and last-used in Settings.
+- CI: `pip-audit` and `npm audit --omit=dev` (weekly and on dependency changes) and Dependabot for pip, npm, Actions and Docker. `react-router-dom` 6.28.0 → 7.18.5 for published advisories.
+- LLM judge prompt-injection hardening: per-call random delimiters, treat-as-data rules, strict reply format, `suspect_injection` flag; a 78-attack suite and a script that measures attack success against a real model.
+- PII redaction modes `off` / `secrets` / `strict` per project (`secrets` for new projects; existing projects keep their behaviour), SDK-side redaction in the exporter thread (`tirkit.init(redact=...)`), a redaction counter in Settings, and a stricter phone-number pattern that no longer mangles long numeric IDs.
+- `docs/site/security.md`: threat model, defaults, limits, encryption at rest and reverse-proxy settings.

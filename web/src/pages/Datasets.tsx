@@ -5,6 +5,7 @@ import { api, projectPath, qs, type DatasetDetail, type DatasetSummary, type Exa
 import { usePid, useRole } from "../hooks";
 import { fmtAgo, fmtNum, preview } from "../format";
 import { Content, JsonBlock } from "../components/Content";
+import { EmptyState } from "../components/EmptyState";
 
 export function Datasets() {
   const pid = usePid();
@@ -14,14 +15,15 @@ export function Datasets() {
   const q = useQuery({ queryKey: ["datasets", pid], queryFn: () => api<DatasetSummary[]>(projectPath(pid, "/datasets")) });
   const [name, setName] = useState("");
   const [msg, setMsg] = useState("");
-  const fromTraces = async () => {
+  const probe = useQuery({ queryKey: ["trace-probe", pid], queryFn: () => api<{ total: number }>(projectPath(pid, "/traces?limit=1")) });
+  const fromTraces = async (dsName = name) => {
     setMsg("");
     try {
       const r = await api<{ version: string; n_items: number }>(projectPath(pid, "/datasets/from-traces"), {
         method: "POST",
-        json: { name, limit: 1000 },
+        json: { name: dsName, limit: 1000 },
       });
-      setMsg(`${name}@${r.version}: ${r.n_items} examples`);
+      setMsg(`${dsName}@${r.version}: ${r.n_items} examples`);
       void qc.invalidateQueries({ queryKey: ["datasets", pid] });
     } catch (e) {
       setMsg(String(e));
@@ -37,7 +39,7 @@ export function Datasets() {
         {role !== "viewer" && (
           <div className="row">
             <input placeholder="New dataset name" value={name} onChange={(e) => setName(e.target.value)} />
-            <button className="primary" disabled={!name} onClick={fromTraces} title="Mine the latest 1,000 root traces, de-duplicated and PII-redacted">
+            <button className="primary" disabled={!name} onClick={() => fromTraces()} title="Mine the latest 1,000 root traces, de-duplicated and PII-redacted">
               Build from recent traces
             </button>
           </div>
@@ -69,8 +71,16 @@ export function Datasets() {
             ))}
             {q.data && !q.data.length && (
               <tr>
-                <td colSpan={6} className="empty">
-                  No datasets yet. Select traces on the Traces page and choose “Add to dataset”, build one from recent traces, or run <code>tirkit dataset import file.jsonl</code>.
+                <td colSpan={6}>
+                  <EmptyState title="Build your first dataset from your traces">
+                    <p>A dataset is a versioned test set. Mined examples are de-duplicated and PII-redacted. You can also select traces on the Traces page, or run <code>tirkit dataset import file.jsonl</code>.</p>
+                    {role !== "viewer" && (probe.data?.total ?? 0) > 0 && (
+                      <button className="primary" onClick={() => fromTraces("from-traces")}>Build “from-traces” from my recent traces</button>
+                    )}
+                    {(probe.data?.total ?? 0) === 0 && probe.data && (
+                      <p>There are no traces yet. <Link to={`/p/${pid}/overview`}>Send your first trace</Link> and come back.</p>
+                    )}
+                  </EmptyState>
                 </td>
               </tr>
             )}

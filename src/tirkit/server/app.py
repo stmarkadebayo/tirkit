@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 
 from tirkit.accounts import Accounts
 from tirkit.media import LocalMediaStore
-from tirkit.server import openapi
+from tirkit.server import openapi, prometheus
 from tirkit.server.deps import (
     SESSION_COOKIE,
     Ctx,
@@ -28,6 +28,7 @@ from tirkit.server.deps import (
     project_ctx,
 )
 from tirkit.server.routers import ROUTERS
+from tirkit.server.security import SecurityMiddleware, build_limits
 from tirkit.server.settings import Settings
 from tirkit.store import open_store
 
@@ -44,14 +45,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         accounts.create_project("Default", admin.user_id)
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> Any:
+    async def lifespan(app_: FastAPI) -> Any:
         worker = None
         if settings.embedded_worker:
             from tirkit.jobs import Worker
 
             worker = Worker(store)
             worker.start_thread()
+        grpc_server = None
+        if settings.otlp_grpc_port is not None:
+            from tirkit.server.otlp_grpc import start_grpc_receiver
+
+            grpc_server, bound = start_grpc_receiver(
+                app_, settings.otlp_grpc_port, settings.otlp_grpc_host
+            )
+            app_.state.otlp_grpc_port = bound
         yield
+        if grpc_server is not None:
+            grpc_server.stop(2).wait(5)
         if worker is not None:
             worker.stop()
 
@@ -69,9 +80,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.media = LocalMediaStore(settings.media_dir)
     app.state.cache = TTLCache()
+    app.state.limits = build_limits(settings, store)
+    app.add_middleware(SecurityMiddleware, settings=settings)  # type: ignore[arg-type]
 
     for router in ROUTERS:
         app.include_router(router, responses=openapi.ERROR_RESPONSES)
+    prometheus.install(app, store, settings.metrics_enabled, settings.metrics_token)
 
     # Extension point for plugins: ``fn(app, project_ctx, key_project, json_response)``.
     for register in _EXTENSIONS:

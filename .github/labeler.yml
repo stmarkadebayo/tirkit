@@ -51,4 +51,6 @@
       - any-glob-to-any-file:
           - Dockerfile
           - docker-compose.yml
+          - deploy/**
+          - scripts/restore_drill.py
           - .github/workflows/**

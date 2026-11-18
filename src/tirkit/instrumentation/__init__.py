@@ -8,18 +8,44 @@ from tirkit.instrumentation._patch import unpatch_all
 
 
 def _registry() -> dict[str, Callable[[], bool]]:
-    from tirkit.instrumentation import anthropic, gemini, openai
+    from tirkit.instrumentation import (
+        anthropic,
+        bedrock,
+        cohere,
+        gemini,
+        litellm,
+        mistral,
+        openai,
+        vertex,
+    )
 
     def transformers() -> bool:
         from tirkit.integrations.transformers import instrument as hf
 
         return hf()
 
+    def integration(module: str) -> Callable[[], bool]:
+        def run() -> bool:
+            import importlib
+
+            return bool(importlib.import_module(f"tirkit.integrations.{module}").instrument())
+
+        return run
+
     return {
         "openai": openai.instrument,
         "anthropic": anthropic.instrument,
+        "bedrock": bedrock.instrument,
+        "cohere": cohere.instrument,
         "gemini": gemini.instrument,
+        "litellm": litellm.instrument,
+        "mistral": mistral.instrument,
+        "vertex": vertex.instrument,
         "transformers": transformers,
+        "openai_agents": integration("openai_agents"),
+        "dspy": integration("dspy"),
+        "llamaindex": integration("llamaindex"),
+        "crewai": integration("crewai"),
     }
 
 

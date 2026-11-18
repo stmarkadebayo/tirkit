@@ -17,6 +17,7 @@ from tirkit.server.deps import (
     session,
     set_session_cookies,
 )
+from tirkit.server.security import audit_event, check_login, login_succeeded
 from tirkit.store import SQLStore
 
 router = APIRouter(tags=["system"])
@@ -45,6 +46,7 @@ def setup(
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
     pid = accounts.create_project(body.project_name or "Default", user.user_id)
+    audit_event(request, "setup", user=user, project_id=pid)
     token, csrf = accounts.create_session(user.user_id)
     resp = json_response({"user": asdict(user), "project_id": pid})
     set_session_cookies(request, resp, token, csrf)
@@ -55,9 +57,13 @@ def setup(
 def login(
     body: m.LoginRequest, request: Request, accounts: Accounts = Depends(app_accounts)
 ) -> Response:
+    check_login(request, body.email)
     user = accounts.authenticate(body.email, body.password)
     if not user:
+        audit_event(request, "login.failure", actor=body.email.strip().lower()[:320])
         raise HTTPException(401, "wrong email or password")
+    login_succeeded(request, body.email)
+    audit_event(request, "login.success", user=user)
     token, csrf = accounts.create_session(user.user_id)
     resp = json_response({"user": asdict(user)})
     set_session_cookies(request, resp, token, csrf)
@@ -73,6 +79,7 @@ def logout(
     token = request.cookies.get(SESSION_COOKIE)
     if token:
         accounts.delete_session(token)
+    audit_event(request, "logout", user=s[0])
     resp = json_response({"ok": True})
     resp.delete_cookie(SESSION_COOKIE, path="/")
     resp.delete_cookie(CSRF_COOKIE, path="/")

@@ -3,12 +3,64 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import threading
+import weakref
 from typing import Any
 
 from tirkit.media import media_ref
 from tirkit.serialize import dumps
 from tirkit.types import Dataset, Example, RunResult, Span, Trace
+
+# Statuses worth another attempt: rate limited, timed out, or the server or a proxy in front of it
+# is briefly unavailable. Ingest is an idempotent upsert, so re-sending a batch is safe.
+RETRY_STATUSES = frozenset({408, 429, 500, 502, 503, 504})
+
+
+class ExportHTTPError(Exception):
+    """A span batch the server did not accept. ``retryable`` tells the exporter whether to try
+    again; ``retry_after`` is the server's ``Retry-After`` in seconds, when it sent one."""
+
+    retryable = False
+
+    def __init__(self, status: int | None, retry_after: float | None = None, msg: str = "") -> None:
+        super().__init__(msg or f"ingest failed with HTTP {status}")
+        self.status = status
+        self.retry_after = retry_after
+
+
+class RetryableHTTPError(ExportHTTPError):
+    """429, 5xx from a proxy or overloaded server, timeouts and connection errors."""
+
+    retryable = True
+
+
+def parse_retry_after(value: str | None) -> float | None:
+    """Seconds to wait from a ``Retry-After`` header (delay-seconds or an HTTP date)."""
+    if value is None:
+        return None
+    value = value.strip()
+    if value.isdigit():
+        return float(value)
+    try:
+        import email.utils
+        import time
+
+        when = email.utils.parsedate_to_datetime(value)
+    except (TypeError, ValueError, IndexError):
+        return None
+    if when is None:
+        return None
+    return max(0.0, when.timestamp() - time.time())
+
+
+class RateLimited(RetryableHTTPError):
+    """The server answered 429; ``retry_after`` is how many seconds it asked us to wait."""
+
+    def __init__(self, retry_after: float, detail: str = "") -> None:
+        super().__init__(
+            429, retry_after, f"rate limited, retry after {retry_after:g}s {detail}".strip()
+        )
 
 
 class HttpClient:
@@ -18,16 +70,50 @@ class HttpClient:
         import httpx
 
         self.host = host.rstrip("/")
+        self._auth = (public_key, secret_key)
+        self._timeout = timeout
+        self.client = httpx.Client(base_url=self.host, auth=self._auth, timeout=timeout)
+        # Resolved now, in this process: on macOS the system proxy lookup is not safe to call
+        # in a forked child once the parent has used it (the child crashes).
+        self._proxy = _proxy_for(self.host)
+        _http_clients.add(self)
+
+    def _after_fork_in_child(self) -> None:
+        """The inherited pool's sockets (and maybe its locks) are shared with the parent; a child
+        gets its own pool. The old client is dropped without closing it."""
+        import httpx
+
+        _inherited_clients.append(self.client)
         self.client = httpx.Client(
-            base_url=self.host, auth=(public_key, secret_key), timeout=timeout
+            base_url=self.host,
+            auth=self._auth,
+            timeout=self._timeout,
+            trust_env=False,  # no system proxy lookup here; proxy and CA env resolved below
+            proxy=self._proxy,
+            verify=httpx.create_ssl_context(trust_env=True),
         )
 
     def save_spans(self, spans: list[Span]) -> None:
+        """Send one batch. Raises :class:`RetryableHTTPError` (with the server's ``Retry-After``)
+        for failures worth retrying and :class:`ExportHTTPError` for the rest; the exporter
+        decides when to retry."""
+        import httpx
+
         body = dumps({"spans": [s.to_dict() for s in spans]})
-        r = self.client.post(
-            "/api/v1/ingest", content=body, headers={"content-type": "application/json"}
-        )
-        r.raise_for_status()
+        try:
+            r = self.client.post(
+                "/api/v1/ingest", content=body, headers={"content-type": "application/json"}
+            )
+        except httpx.TransportError as exc:
+            raise RetryableHTTPError(None, msg=f"ingest failed: {exc!r}") from exc
+        if r.is_success:
+            return
+        retry_after = parse_retry_after(r.headers.get("retry-after"))
+        if r.status_code == 429 and retry_after is not None:
+            raise RateLimited(retry_after)
+        if r.status_code in RETRY_STATUSES:
+            raise RetryableHTTPError(r.status_code, retry_after)
+        raise ExportHTTPError(r.status_code, msg=f"ingest failed with HTTP {r.status_code}")
 
     def save_span(self, span: Span) -> None:
         self.save_spans([span])
@@ -65,6 +151,32 @@ class HttpClient:
 
     def media_store(self) -> HttpMediaStore:
         return HttpMediaStore(self)
+
+
+def _proxy_for(url: str) -> str | None:
+    """The proxy httpx would use for ``url`` from the environment or system settings."""
+    from urllib.parse import urlsplit
+    from urllib.request import getproxies, proxy_bypass
+
+    parts = urlsplit(url)
+    proxies = getproxies()
+    proxy = proxies.get(parts.scheme) or proxies.get("all")
+    if not proxy or (parts.hostname and proxy_bypass(parts.hostname)):
+        return None
+    return proxy if "://" in proxy else f"http://{proxy}"
+
+
+_http_clients: weakref.WeakSet[HttpClient] = weakref.WeakSet()
+_inherited_clients: list[Any] = []
+
+
+def _reset_after_fork() -> None:
+    for hc in list(_http_clients):
+        hc._after_fork_in_child()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reset_after_fork)
 
 
 class HttpMediaStore:
@@ -105,7 +217,15 @@ class RemoteStore:
 
     def __init__(self, http: HttpClient) -> None:
         self.http = http
-        self.project_id: str = http.get("/api/v1/project")["project_id"]
+        self._project_id: str | None = None
+
+    @property
+    def project_id(self) -> str:
+        """Asked of the server on first use, never at ``tirkit.init()``: starting an app must not
+        depend on the Tirkit server being reachable."""
+        if self._project_id is None:
+            self._project_id = self.http.get("/api/v1/project")["project_id"]
+        return self._project_id
 
     def _path(self, rest: str) -> str:
         return f"/api/projects/{self.project_id}{rest}"

@@ -62,7 +62,7 @@ export function Setup() {
     try {
       const r = await api<{ project_id: string }>("/api/setup", { method: "POST", json: form });
       await qc.invalidateQueries();
-      nav(`/p/${r.project_id}/settings?welcome=1`);
+      nav(`/p/${r.project_id}/overview`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Setup failed");
     }

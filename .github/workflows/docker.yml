@@ -1,0 +1,51 @@
+# Docker: build the image and run the README's `docker compose up`, then check what a new user
+# does: the UI loads, the admin is created, a trace sent with the SDK arrives, /metrics answers.
+# This is the same image the release workflow publishes.
+name: docker
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - ".dockerignore"
+      - "src/**"
+      - "web/**"
+      - "pyproject.toml"
+      - "scripts/docker_smoke.py"
+      - ".github/workflows/docker.yml"
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - ".dockerignore"
+      - "src/**"
+      - "web/**"
+      - "pyproject.toml"
+      - "scripts/docker_smoke.py"
+      - ".github/workflows/docker.yml"
+  workflow_dispatch:
+jobs:
+  compose-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e .   # the SDK and httpx, for the smoke script
+      - name: docker compose up (builds the image, starts Postgres, server and worker)
+        run: docker compose up -d --build
+      - name: Smoke test
+        run: python scripts/docker_smoke.py --url http://localhost:8000
+      - name: Every container is still running
+        run: |
+          docker compose ps
+          test -z "$(docker compose ps --status exited --status restarting --quiet)"
+      - name: Logs (on failure)
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

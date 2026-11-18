@@ -19,12 +19,15 @@ user code.
 from __future__ import annotations
 
 import contextvars
+import fnmatch
 import functools
 import inspect
 import logging
 import time
+import zlib
 from collections.abc import AsyncIterator, Callable, Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import Any, Protocol, TypeVar, overload
 
 from tirkit import pricing
@@ -49,6 +52,12 @@ KINDS = frozenset(
         "speech_to_speech",
         "guardrail",
         "evaluator",
+        "vector_db",  # a vector store query or upsert (Chroma, Pinecone, pgvector...)
+        "mcp_tool",  # a tool called through the Model Context Protocol
+        "human",  # human in the loop: waiting for an approval or an answer
+        "computer_use",  # a computer-use action (click, type, screenshot)
+        "retry",  # a call retried until it worked; children are the attempts
+        "fallback",  # alternatives tried in order; children are the options tried
     }
 )
 
@@ -97,6 +106,87 @@ def set_default_sink(sink: SpanSink | None) -> None:
 
 def get_default_sink() -> SpanSink:
     return _default_sink
+
+
+# -- sampling -----------------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SamplingRule:
+    """Sample rate for traces whose root span matches. ``name`` is a glob (``health*``);
+    a rule with neither ``name`` nor ``kind`` matches every trace."""
+
+    rate: float
+    name: str | None = None
+    kind: str | None = None
+
+    def matches(self, name: str, kind: str) -> bool:
+        if self.kind is not None and self.kind != kind:
+            return False
+        return self.name is None or fnmatch.fnmatchcase(name, self.name)
+
+
+def _check_rate(rate: float) -> float:
+    rate = float(rate)
+    if not 0.0 <= rate <= 1.0:
+        raise ValueError(f"sample rate must be between 0 and 1, got {rate}")
+    return rate
+
+
+class Sampler:
+    """Head sampling per trace: decided once at the root span, inherited by every child, so a
+    trace is kept whole or dropped whole. The decision hashes the trace id, so it is the same
+    in every process that sees the trace. With ``keep_errors`` a span that fails is exported
+    anyway, together with every span of its trace that finishes after it (its ancestors)."""
+
+    def __init__(
+        self,
+        rate: float = 1.0,
+        rules: list[SamplingRule | dict[str, Any]] | None = None,
+        keep_errors: bool = True,
+    ) -> None:
+        self.rate = _check_rate(rate)
+        self.rules = [r if isinstance(r, SamplingRule) else SamplingRule(**r) for r in rules or []]
+        for r in self.rules:
+            _check_rate(r.rate)
+        self.keep_errors = keep_errors
+
+    def rate_for(self, name: str, kind: str) -> float:
+        for rule in self.rules:
+            if rule.matches(name, kind):
+                return rule.rate
+        return self.rate
+
+    def keep_trace(self, trace_id: str, name: str, kind: str) -> bool:
+        rate = self.rate_for(name, kind)
+        if rate >= 1.0:
+            return True
+        if rate <= 0.0:
+            return False
+        return zlib.crc32(trace_id.encode()) / 0xFFFFFFFF < rate
+
+
+_sampler: Sampler | None = None
+_SAMPLE = "_tirkit_sample"  # instance key on a Span holding its trace's sampling decision
+
+
+def set_sampling(
+    rate: float | None = 1.0,
+    rules: list[SamplingRule | dict[str, Any]] | None = None,
+    keep_errors: bool = True,
+) -> None:
+    """Keep a fraction of traces. ``set_sampling(None)`` (or rate 1 with no rules) turns
+    sampling off. Rules are checked in order against the root span; the first match wins."""
+    global _sampler
+    if rate is None or (float(rate) >= 1.0 and not rules):
+        _check_rate(1.0 if rate is None else rate)
+        _sampler = None
+        return
+    _sampler = Sampler(rate, rules, keep_errors)
+
+
+def get_sampler() -> Sampler | None:
+    return _sampler
 
 
 def _safe_reset(token: contextvars.Token[Span | None]) -> None:
@@ -155,6 +245,12 @@ def start_span(
         s.trace_id, s.parent_id = parent.trace_id, parent.span_id
         s.session_id, s.user_id, s.release = parent.session_id, parent.user_id, parent.release
         s.tags = list(parent.tags)
+        decision = parent.__dict__.get(_SAMPLE)
+        if decision is not None:
+            s.__dict__[_SAMPLE] = decision
+    elif _sampler is not None:
+        # [keep, keep_errors], shared by every span of the trace.
+        s.__dict__[_SAMPLE] = [_sampler.keep_trace(s.trace_id, name, kind), _sampler.keep_errors]
     for k in ("session_id", "user_id", "release"):
         if ctx.get(k) is not None:
             setattr(s, k, ctx[k])
@@ -168,6 +264,11 @@ def finish_span(s: Span, sink: SpanSink | None = None) -> None:
     try:
         if s.end is None:
             s.end = time.time()
+        decision = s.__dict__.get(_SAMPLE)
+        if decision is not None and not decision[0]:
+            if not (decision[1] and s.status == "error"):
+                return
+            decision[0] = True  # keep the rest of this trace: the error's ancestors
         if s.output is not None:
             s.output = to_jsonable(s.output)
         if s.cost_usd is None and s.usage:

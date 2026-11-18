@@ -200,6 +200,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{project_id}/keys/{public_key}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate Key
+         * @description Issue a replacement key. The old key keeps working for ``overlap_s`` seconds (default one
+         *     day, 0 to revoke it now) so running apps can switch over without dropping traces.
+         */
+        post: operations["rotate_key_api_projects__project_id__keys__public_key__rotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{project_id}/keys/{public_key}": {
         parameters: {
             query?: never;
@@ -410,8 +431,34 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Trace */
+        /**
+         * Get Trace
+         * @description The trace, its scores and a light span tree (``TraceDetail``). Inputs and outputs are cut
+         *     to ``preview`` characters, less on big pages (all previews of a page share a budget; the
+         *     response says how many characters each got); get one full span from ``.../spans/{span_id}``.
+         *     With ``full=1`` every span comes in full instead (``TraceDetailFull``).
+         */
         get: operations["get_trace_api_projects__project_id__traces__trace_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/traces/{trace_id}/spans/{span_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Span
+         * @description One span in full: input, output, parameters and attributes.
+         */
+        get: operations["get_span_api_projects__project_id__traces__trace_id__spans__span_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1105,6 +1152,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Server Audit
+         * @description Every audit event, including sign-ins (server admins only).
+         */
+        get: operations["server_audit_api_admin_audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{project_id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Project Audit
+         * @description This project's audit events (project admins, signed in; API keys cannot read it).
+         */
+        get: operations["project_audit_api_projects__project_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1241,6 +1328,8 @@ export interface components {
              * @description Shown once; only a hash is stored.
              */
             secret_key: string;
+            /** Expires At */
+            expires_at?: number | null;
         };
         /** ApiKeyInfo */
         ApiKeyInfo: {
@@ -1250,8 +1339,70 @@ export interface components {
             name: string | null;
             /** Created */
             created: number;
-            /** Last Used */
+            /**
+             * Last Used
+             * @description Updated at most once a minute per server process.
+             */
             last_used: number | null;
+            /** Expires At */
+            expires_at: number | null;
+            /**
+             * Rotated To
+             * @description The key that replaced this one, if rotated.
+             */
+            rotated_to: string | null;
+            /** Expired */
+            expired: boolean;
+        };
+        /** ApiKeyRotated */
+        ApiKeyRotated: {
+            /** Public Key */
+            public_key: string;
+            /**
+             * Secret Key
+             * @description Shown once; only a hash is stored.
+             */
+            secret_key: string;
+            /** Previous Key */
+            previous_key: string;
+            /** Previous Expires At */
+            previous_expires_at: number;
+        };
+        /** AuditEntry */
+        AuditEntry: {
+            /** Id */
+            id: number;
+            /** At */
+            at: number;
+            /**
+             * Actor
+             * @description Email, ``api:<public key>``, or the email tried at sign-in.
+             */
+            actor: string | null;
+            /** Actor Id */
+            actor_id: string | null;
+            /** Ip */
+            ip: string | null;
+            /** Action */
+            action: string;
+            /** Project Id */
+            project_id: string | null;
+            /** Target */
+            target: string | null;
+            /** Detail */
+            detail: {
+                [key: string]: components["schemas"]["Json"];
+            };
+        };
+        /** AuditPage */
+        AuditPage: {
+            /** Entries */
+            entries: components["schemas"]["AuditEntry"][];
+            /**
+             * Next Before
+             * @description Pass as ``before`` for the next (older) page.
+             */
+            next_before: number | null;
         };
         /** CompareItem */
         CompareItem: {
@@ -1380,6 +1531,11 @@ export interface components {
         CreateKeyRequest: {
             /** Name */
             name?: string | null;
+            /**
+             * Expires At
+             * @description Unix seconds; the key stops working then.
+             */
+            expires_at?: number | null;
         };
         /** CreateProjectRequest */
         CreateProjectRequest: {
@@ -1953,6 +2109,19 @@ export interface components {
             p95_ms?: number | null;
             /** P99 Ms */
             p99_ms?: number | null;
+            /** Cached Input Tokens */
+            cached_input_tokens?: number | null;
+            /** Reasoning Tokens */
+            reasoning_tokens?: number | null;
+            /**
+             * Cache Hit Rate
+             * @description Cached input tokens / input tokens; null without input tokens.
+             */
+            cache_hit_rate?: number | null;
+            /** Ttft P50 Ms */
+            ttft_p50_ms?: number | null;
+            /** Ttft P95 Ms */
+            ttft_p95_ms?: number | null;
         };
         /** Metrics */
         Metrics: {
@@ -2073,6 +2242,12 @@ export interface components {
              * @enum {string}
              */
             role: "admin" | "member" | "viewer";
+            /**
+             * Redactions
+             * @description Values redacted at ingestion (server and SDK).
+             * @default 0
+             */
+            redactions: number;
         };
         /** ProjectCreated */
         ProjectCreated: {
@@ -2093,6 +2268,8 @@ export interface components {
         };
         /** ProjectSettings */
         ProjectSettings: {
+            /** Redact Mode */
+            redact_mode?: ("off" | "secrets" | "strict") | null;
             /** Redact */
             redact?: boolean | null;
             /** Redact Patterns */
@@ -2215,6 +2392,14 @@ export interface components {
             pattern: string;
             /** Label */
             label?: string | null;
+        };
+        /** RotateKeyRequest */
+        RotateKeyRequest: {
+            /**
+             * Overlap S
+             * @description How long the old key keeps working (default 1 day).
+             */
+            overlap_s?: number | null;
         };
         /** Rubric */
         Rubric: {
@@ -2476,7 +2661,15 @@ export interface components {
          * @description Fields left out keep their current value; ``null`` clears one.
          */
         SettingsUpdate: {
-            /** Redact */
+            /**
+             * Redact Mode
+             * @description PII redaction at ingestion: off, secrets (keys, tokens, cards, IBANs, passwords) or strict (also emails, phone numbers and IP addresses).
+             */
+            redact_mode?: ("off" | "secrets" | "strict") | null;
+            /**
+             * Redact
+             * @description Deprecated: true = strict, false = off.
+             */
             redact?: boolean | null;
             /** Redact Patterns */
             redact_patterns?: components["schemas"]["RedactPattern"][] | null;
@@ -2696,6 +2889,52 @@ export interface components {
             /** Items */
             items: components["schemas"]["Span"][];
         };
+        /**
+         * SpanSummary
+         * @description A span in the light trace view: structure, timings, tokens, cost and short previews.
+         *     ``*_preview`` is the start of the input or output (strings as text, anything else as JSON
+         *     text); fetch the full span from ``GET .../traces/{trace_id}/spans/{span_id}``.
+         */
+        SpanSummary: {
+            /** Span Id */
+            span_id: string;
+            /** Parent Id */
+            parent_id: string | null;
+            /** Name */
+            name: string;
+            /** Kind */
+            kind: string;
+            /** Status */
+            status: string;
+            /** Level */
+            level: string;
+            /** Start */
+            start: number;
+            /** End */
+            end: number | null;
+            /** Duration Ms */
+            duration_ms: number | null;
+            /** Ttft Ms */
+            ttft_ms: number | null;
+            /** Model */
+            model: string | null;
+            /** Input Tokens */
+            input_tokens: number | null;
+            /** Output Tokens */
+            output_tokens: number | null;
+            /** Cost Usd */
+            cost_usd: number | null;
+            /** Error */
+            error: string | null;
+            /** Input Preview */
+            input_preview: string | null;
+            /** Output Preview */
+            output_preview: string | null;
+            /** Input Truncated */
+            input_truncated: boolean;
+            /** Output Truncated */
+            output_truncated: boolean;
+        };
         /** ToggleEvaluatorRequest */
         ToggleEvaluatorRequest: {
             /**
@@ -2742,13 +2981,75 @@ export interface components {
             /** Has Error */
             has_error: boolean;
         };
-        /** TraceDetail */
+        /**
+         * TraceDetail
+         * @description A trace with a light span tree (one page of spans, oldest first). ``omitted`` spans of
+         *     the trace come after this page; ask for them with ``offset=next_offset``.
+         */
         TraceDetail: {
+            trace: components["schemas"]["TraceHead"];
+            /** Spans */
+            spans: components["schemas"]["SpanSummary"][];
+            /** Scores */
+            scores: components["schemas"]["ScoreRow"][];
+            /** Total Spans */
+            total_spans: number;
+            /** Offset */
+            offset: number;
+            /** Omitted */
+            omitted: number;
+            /** Next Offset */
+            next_offset: number | null;
+            /**
+             * Preview
+             * @description Characters of input and output preview each span got
+             */
+            preview: number;
+        };
+        /**
+         * TraceDetailFull
+         * @description The trace with every span in full (``?full=1``; the shape before the light view).
+         */
+        TraceDetailFull: {
             trace: components["schemas"]["Trace"];
             /** Spans */
             spans: components["schemas"]["Span"][];
             /** Scores */
             scores: components["schemas"]["ScoreRow"][];
+        };
+        /**
+         * TraceHead
+         * @description A trace summary without the root's input and output (see the root span's previews).
+         */
+        TraceHead: {
+            /** Trace Id */
+            trace_id: string;
+            /** Name */
+            name: string | null;
+            /** Session Id */
+            session_id: string | null;
+            /** User Id */
+            user_id: string | null;
+            /** Release */
+            release: string | null;
+            /** Tags */
+            tags: string[];
+            /** Start */
+            start: number | null;
+            /** End */
+            end: number | null;
+            /** Duration Ms */
+            duration_ms: number | null;
+            /** N Spans */
+            n_spans: number;
+            /** Input Tokens */
+            input_tokens: number | null;
+            /** Output Tokens */
+            output_tokens: number | null;
+            /** Cost Usd */
+            cost_usd: number | null;
+            /** Has Error */
+            has_error: boolean;
         };
         /** TraceList */
         TraceList: {
@@ -3246,6 +3547,42 @@ export interface operations {
             };
         };
     };
+    rotate_key_api_projects__project_id__keys__public_key__rotate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                public_key: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RotateKeyRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKeyRotated"];
+                };
+            };
+            /** @description Client error: {"detail": "..."} */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     delete_key_api_projects__project_id__keys__public_key__delete: {
         parameters: {
             query?: never;
@@ -3675,7 +4012,16 @@ export interface operations {
     };
     get_trace_api_projects__project_id__traces__trace_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 1 or true: every span in full (old shape) */
+                full?: string | null;
+                /** @description Spans per page, 1 to 50000 */
+                limit?: number;
+                /** @description First span of the page (oldest first) */
+                offset?: number;
+                /** @description Preview characters, 0 to 20000 */
+                preview?: number;
+            };
             header?: never;
             path: {
                 trace_id: string;
@@ -3691,7 +4037,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TraceDetail"];
+                    "application/json": components["schemas"]["TraceDetail"] | components["schemas"]["TraceDetailFull"];
+                };
+            };
+            /** @description Client error: {"detail": "..."} */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    get_span_api_projects__project_id__traces__trace_id__spans__span_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trace_id: string;
+                span_id: string;
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Span"];
                 };
             };
             /** @description Client error: {"detail": "..."} */
@@ -5249,6 +5628,81 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["JobQueued"];
+                };
+            };
+            /** @description Client error: {"detail": "..."} */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    server_audit_api_admin_audit_get: {
+        parameters: {
+            query?: {
+                project_id?: string | null;
+                /** @description Exact action, or a prefix ending in "." */
+                action?: string | null;
+                actor?: string | null;
+                /** @description Only entries with a smaller id */
+                before?: number | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            /** @description Client error: {"detail": "..."} */
+            "4XX": {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    project_audit_api_projects__project_id__audit_get: {
+        parameters: {
+            query?: {
+                /** @description Exact action, or a prefix ending in "." */
+                action?: string | null;
+                actor?: string | null;
+                /** @description Only entries with a smaller id */
+                before?: number | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
                 };
             };
             /** @description Client error: {"detail": "..."} */

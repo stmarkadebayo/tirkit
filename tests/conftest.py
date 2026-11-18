@@ -152,10 +152,12 @@ def fake_llm(monkeypatch) -> Iterator[str]:
 
 
 @pytest.fixture
-def webhook() -> Iterator[tuple[str, list[dict[str, Any]]]]:
-    """A local HTTP endpoint that records JSON posts (for alert delivery)."""
+def webhook(monkeypatch) -> Iterator[tuple[str, list[dict[str, Any]]]]:
+    """A local HTTP endpoint that records JSON posts (for alert delivery). It listens on
+    127.0.0.1, so it sets the private-target opt-out the SSRF guard requires for that."""
     import uvicorn
 
+    monkeypatch.setenv("TIRKIT_ALLOW_PRIVATE_WEBHOOKS", "1")
     received: list[dict[str, Any]] = []
     app = FastAPI()
 
