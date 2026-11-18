@@ -90,6 +90,7 @@ All notable changes to Tirkit are recorded here. The format follows
 - First-run checklist on the Overview: create a key, copy a Python, TypeScript or OpenTelemetry snippet with the project's host and public key, watch "listening" turn into "Got it", then build a dataset, run an experiment, label 20 items and check judge reliability. Each step shows done or not done from real data; the list can be dismissed and disappears when everything is done.
 - Empty Traces, Datasets, Experiments, Annotation and Online evals screens offer a one-click path or a ready-to-copy snippet.
 - A release workflow (`.github/workflows/release.yml`) and `docs/RELEASING.md`: a version tag builds the wheel with the UI, checks it, and publishes to PyPI (trusted publishing), npm and GHCR.
+- CI builds the Docker image and runs `docker compose up` end to end (`.github/workflows/docker.yml`, `scripts/docker_smoke.py`): the UI loads, the first admin is created, a trace sent with the SDK arrives and `/metrics` answers.
 
 ### Fixed
 - Alerts created through the API without `window_s` showed "NaN min" in the UI.
