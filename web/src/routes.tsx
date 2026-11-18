@@ -1,13 +1,24 @@
 import type { ReactNode } from "react";
 import { Route } from "react-router-dom";
-import { DatasetView, Datasets } from "./pages/Datasets";
-import { Compare, ExperimentView, Experiments } from "./pages/Experiments";
-import { Annotation, Labeller } from "./pages/Annotation";
-import { PromptView, Prompts } from "./pages/Prompts";
-import Playground from "./pages/Playground";
-import { AlertsPage, OnlineEvals } from "./pages/Online";
-import { JudgeReliability } from "./pages/Judge";
-import Audit from "./pages/Audit";
+import { lazy } from "react";
+
+// Pages load on demand so the first screen stays small (charts alone are a large share of the bundle).
+const named = <T extends Record<string, React.ComponentType>>(load: () => Promise<T>, key: keyof T & string) =>
+  lazy(() => load().then((m) => ({ default: m[key] })));
+const Datasets = named(() => import("./pages/Datasets"), "Datasets");
+const DatasetView = named(() => import("./pages/Datasets"), "DatasetView");
+const Experiments = named(() => import("./pages/Experiments"), "Experiments");
+const ExperimentView = named(() => import("./pages/Experiments"), "ExperimentView");
+const Compare = named(() => import("./pages/Experiments"), "Compare");
+const Annotation = named(() => import("./pages/Annotation"), "Annotation");
+const Labeller = named(() => import("./pages/Annotation"), "Labeller");
+const Prompts = named(() => import("./pages/Prompts"), "Prompts");
+const PromptView = named(() => import("./pages/Prompts"), "PromptView");
+const Playground = lazy(() => import("./pages/Playground"));
+const AlertsPage = named(() => import("./pages/Online"), "AlertsPage");
+const OnlineEvals = named(() => import("./pages/Online"), "OnlineEvals");
+const JudgeReliability = named(() => import("./pages/Judge"), "JudgeReliability");
+const Audit = lazy(() => import("./pages/Audit"));
 
 export interface NavItem {
   to: string;

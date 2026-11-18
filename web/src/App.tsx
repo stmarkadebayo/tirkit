@@ -1,17 +1,20 @@
+import { lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "./api";
 import { useMe } from "./hooks";
 import Layout from "./components/Layout";
 import { Login, Setup } from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
 import Overview from "./pages/Overview";
-import Traces from "./pages/Traces";
-import TraceView from "./pages/TraceView";
-import { SessionView, Sessions } from "./pages/Sessions";
-import Users from "./pages/Users";
-import Settings from "./pages/Settings";
 import { extraRoutes } from "./routes";
+
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Traces = lazy(() => import("./pages/Traces"));
+const TraceView = lazy(() => import("./pages/TraceView"));
+const Sessions = lazy(() => import("./pages/Sessions").then((m) => ({ default: m.Sessions })));
+const SessionView = lazy(() => import("./pages/Sessions").then((m) => ({ default: m.SessionView })));
+const Users = lazy(() => import("./pages/Users"));
+const Settings = lazy(() => import("./pages/Settings"));
 
 function Home() {
   const setup = useQuery({ queryKey: ["setup"], queryFn: () => api<{ needs_setup: boolean }>("/api/setup") });
