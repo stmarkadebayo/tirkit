@@ -11,6 +11,7 @@ All notable changes to Tirkit are recorded here. The format follows
 - Dashboard score trends carry a 95% t interval per period (`ci_low`, `ci_high` on each score point), drawn as whiskers on each point and shown in the tooltip.
 - `make dev-seed` now fills every screen of the web UI with synthetic, development-only data: traces, sessions, users, prompts, a three-version dataset, experiments with a regression, a human-labelled annotation queue, judge-reliability reports, online evaluators and alerts. It is deterministic, safe to run twice and needs no network or model (the judge is scripted). See `examples/seed_dev.py`.
 - `research/labelling/prepare_e1_queue.py` and `GUIDE.md`: prepare the 100 outputs of experiment E1 as traces, the `correct` score and an annotation queue, so the judge-vs-human labels can be collected in about an hour (`docs/E1.md`).
+- `research/labelling/prepare_e1_part2.py`: a second batch of 100 outputs of mixed quality for E1 (70 closed-book answers and 30 with injected defects), because answers written with the policy text were almost all correct (94 of the first 99 human labels were 5) and kappa says little on near-constant labels.
 
 ### Changed
 - Score-average alerts fire only when the 95% interval of the window's mean is wholly past the threshold, and need at least two scores; the message shows the interval and the count. Other alert metrics are unchanged.
