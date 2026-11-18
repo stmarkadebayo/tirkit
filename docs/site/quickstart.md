@@ -7,8 +7,9 @@ git clone https://github.com/stmarkadebayo/tirkit && cd tirkit
 docker compose up -d          # server, worker and Postgres on http://localhost:8000
 ```
 
-Open <http://localhost:8000>, create the admin account, then **Settings → API keys → Create API key**.
-Copy the three lines it shows.
+Open <http://localhost:8000>, create the admin account, and follow the **Send your first trace**
+checklist on the Overview: it creates the key and shows the code with your address and key filled in
+(or use **Settings → API keys → Create API key** and copy the three lines it shows).
 
 No Docker? `pip install "tirkit[server]" && tirkit serve` runs everything in one process on SQLite.
 
@@ -42,7 +43,7 @@ with tirkit.trace_context(user_id="user-42", session_id="chat-1"):
 tirkit.flush()
 ```
 
-Refresh **Traces**: the trace shows the agent span, the model call, tokens, cost and latency.
+The checklist turns to "Got it" when the trace arrives. In **Traces**, the trace shows the agent span, the model call, tokens, cost and latency.
 
 ## 3. Evaluate a change
 

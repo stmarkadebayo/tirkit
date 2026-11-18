@@ -16,6 +16,7 @@ nav:
   - Operations: operations.md
   - Security: security.md
   - HTTP API: api.md
+  - The web interface: web-ui.md
 theme:
   name: material
   features: [navigation.sections, content.code.copy]
