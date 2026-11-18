@@ -1,0 +1,17 @@
+Score how CORRECT the output is, from 1 to 5. The input contains the customer's question and a
+reference answer; the reference answer is the ground truth.
+
+5: every fact in the reference is stated correctly, and nothing in the output contradicts it.
+4: correct, but it misses one part of the reference (a condition, a number, a yes/no detail).
+3: about half right: some of the reference is there, some missing or vague.
+2: mostly wrong, or it contradicts the reference on an important point.
+1: wrong, off topic, or a refusal to answer.
+
+Rules:
+- Length earns nothing and costs nothing. A one-sentence output that has every fact is a 5. A long
+  output that misses one fact is a 4.
+- Extra detail that does not contradict the reference is IGNORED. Do not lower the score because
+  the output says things the reference does not mention. Only a contradiction of the reference
+  lowers the score.
+- Judge the facts, not the wording: "30 days" and "thirty days from delivery" are the same.
+- If two scores seem right, take the lower one.
