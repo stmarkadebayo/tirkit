@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 import random
 from collections import Counter
-from collections.abc import Hashable, Sequence
+from collections.abc import Callable, Hashable, Sequence
 
 
 def mean(values: Sequence[float]) -> float:
@@ -89,6 +89,46 @@ def cohen_kappa(rater_a: Sequence[Hashable], rater_b: Sequence[Hashable]) -> flo
     return (p_o - p_e) / (1 - p_e)
 
 
+def bootstrap_intervals(
+    n: int,
+    statistic: Callable[[list[int]], Sequence[float]],
+    *,
+    n_resamples: int = 2_000,
+    alpha: float = 0.05,
+    seed: int = 0,
+) -> list[tuple[float, float]]:
+    """Percentile bootstrap CIs for statistics of ``n`` items computed together.
+
+    ``statistic`` receives resampled item indices and returns one value per statistic; each
+    statistic gets its own interval, but all share the same resamples (so a difference between
+    two of them is paired)."""
+    if n <= 0:
+        raise ValueError("bootstrap of no items")
+    rng = random.Random(seed)
+    draws: list[Sequence[float]] = []
+    for _ in range(n_resamples):
+        draws.append(statistic(rng.choices(range(n), k=n)))
+    out = []
+    for j in range(len(draws[0])):
+        values = sorted(d[j] for d in draws)
+        out.append((_percentile(values, alpha / 2), _percentile(values, 1 - alpha / 2)))
+    return out
+
+
+def bootstrap_stat(
+    n: int,
+    statistic: Callable[[list[int]], float],
+    *,
+    n_resamples: int = 2_000,
+    alpha: float = 0.05,
+    seed: int = 0,
+) -> tuple[float, float]:
+    """Percentile bootstrap CI for one statistic of ``n`` items (resampled with replacement)."""
+    return bootstrap_intervals(
+        n, lambda idx: (statistic(idx),), n_resamples=n_resamples, alpha=alpha, seed=seed
+    )[0]
+
+
 def kappa_ci(
     rater_a: Sequence[Hashable],
     rater_b: Sequence[Hashable],
@@ -101,13 +141,65 @@ def kappa_ci(
     n = len(rater_a)
     if n != len(rater_b) or n == 0:
         raise ValueError("need two equal, non-empty label lists")
-    rng = random.Random(seed)
-    values = []
-    for _ in range(n_resamples):
-        idx = rng.choices(range(n), k=n)
-        values.append(cohen_kappa([rater_a[i] for i in idx], [rater_b[i] for i in idx]))
-    values.sort()
-    return _percentile(values, alpha / 2), _percentile(values, 1 - alpha / 2)
+    return bootstrap_stat(
+        n,
+        lambda idx: cohen_kappa([rater_a[i] for i in idx], [rater_b[i] for i in idx]),
+        n_resamples=n_resamples,
+        alpha=alpha,
+        seed=seed,
+    )
+
+
+Z_95 = 1.959963984540054
+
+# Two-sided 95% critical values of Student's t by degrees of freedom (standard table).
+_T_95 = {
+    1: 12.7062, 2: 4.3027, 3: 3.1824, 4: 2.7764, 5: 2.5706, 6: 2.4469, 7: 2.3646, 8: 2.3060,
+    9: 2.2622, 10: 2.2281, 11: 2.2010, 12: 2.1788, 13: 2.1604, 14: 2.1448, 15: 2.1314,
+    16: 2.1199, 17: 2.1098, 18: 2.1009, 19: 2.0930, 20: 2.0860, 21: 2.0796, 22: 2.0739,
+    23: 2.0687, 24: 2.0639, 25: 2.0595, 26: 2.0555, 27: 2.0518, 28: 2.0484, 29: 2.0452,
+    30: 2.0423, 40: 2.0211, 60: 2.0003, 120: 1.9799,
+}
+
+
+def t_critical_95(df: int) -> float:
+    """Two-sided 95% t critical value. Between table rows the smaller df is used, so the
+    interval errs wide, never narrow; above 120 df the normal value is used."""
+    if df < 1:
+        raise ValueError("t needs at least one degree of freedom")
+    if df > 120:
+        return Z_95
+    return _T_95[max(k for k in _T_95 if k <= df)]
+
+
+def mean_ci_t(n: int, mean_value: float, sd: float) -> tuple[float, float] | None:
+    """95% t interval for a mean from its sample size, mean and sample standard deviation.
+    None below two values (no spread to measure)."""
+    if n < 2:
+        return None
+    half = t_critical_95(n - 1) * sd / math.sqrt(n)
+    return mean_value - half, mean_value + half
+
+
+def t_interval(values: Sequence[float]) -> tuple[float, float] | None:
+    """95% t interval for the mean of ``values`` (None below two values)."""
+    n = len(values)
+    if n < 2:
+        return None
+    m = mean(values)
+    sd = math.sqrt(math.fsum((v - m) ** 2 for v in values) / (n - 1))
+    return mean_ci_t(n, m, sd)
+
+
+def wilson_ci(k: int, n: int, *, z: float = Z_95) -> tuple[float, float]:
+    """Wilson score interval for a proportion k/n: sound near 0 and 1 and at small n."""
+    if n <= 0:
+        raise ValueError("a proportion needs at least one trial")
+    p = k / n
+    denom = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / denom
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
+    return max(0.0, centre - half), min(1.0, centre + half)
 
 
 def weighted_kappa(
