@@ -30,6 +30,8 @@ Spans are queued and sent by a background thread, so a traced call never waits f
 the database. If the queue (10,000 spans) is full, spans are dropped and counted
 (`tirkit.get_client().exporter.stats()`), never blocking your code.
 
+**If the server is down.** Tracing fails open: `tirkit.init()` makes no network call, traced code never waits for the network, and an unreachable, erroring or hanging server never raises into your app. Lost spans are counted in `stats()` and one warning is logged per outage (not one per batch). A batch is retried with backoff for up to 30 seconds (the server's `Retry-After` wins); when your app exits it waits at most 5 seconds to send what is queued. `tests/test_fail_open.py` checks all of this.
+
 - **Retries.** A failed batch is retried (timeouts, connection errors, 408, 429 and 5xx) with
   jittered exponential backoff (up to 5 s) and at most 5 retries within 30 s
   (`max_retries`, `max_retry_s` on `BatchExporter`). A `Retry-After` header from the server is

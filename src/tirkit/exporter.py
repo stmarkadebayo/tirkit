@@ -81,6 +81,7 @@ class BatchExporter:
         self.exported = 0
         self.failed = 0
         self.throttled = 0  # times a batch waited for a 429 Retry-After
+        self._outage_logged = False  # one warning per outage, not one per lost batch
         self._queue: deque[Span] = deque()
         self._stop = False
         self._start()
@@ -156,14 +157,23 @@ class BatchExporter:
             try:
                 self.target.save_spans(batch)
                 self.exported += len(batch)
+                if self._outage_logged:
+                    self._outage_logged = False
+                    log.info("tirkit: exporting again after %d spans were dropped", self.failed)
                 return
             except Exception as exc:  # noqa: BLE001
                 wait = self._retry_wait(exc, attempt, deadline, patience)
                 if wait is None:
                     self.failed += len(batch)
-                    log.warning(
-                        "tirkit: failed to export %d spans: %s", len(batch), exc, exc_info=True
-                    )
+                    if not self._outage_logged:
+                        self._outage_logged = True
+                        log.warning(
+                            "tirkit: failed to export %d spans: %s. Spans are being dropped and "
+                            "counted (tirkit.get_client().exporter.stats()); this is logged once "
+                            "until exports work again.",
+                            len(batch),
+                            exc,
+                        )
                     return
                 if getattr(exc, "retry_after", None) is None:
                     attempt += 1

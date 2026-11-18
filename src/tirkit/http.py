@@ -217,7 +217,15 @@ class RemoteStore:
 
     def __init__(self, http: HttpClient) -> None:
         self.http = http
-        self.project_id: str = http.get("/api/v1/project")["project_id"]
+        self._project_id: str | None = None
+
+    @property
+    def project_id(self) -> str:
+        """Asked of the server on first use, never at ``tirkit.init()``: starting an app must not
+        depend on the Tirkit server being reachable."""
+        if self._project_id is None:
+            self._project_id = self.http.get("/api/v1/project")["project_id"]
+        return self._project_id
 
     def _path(self, rest: str) -> str:
         return f"/api/projects/{self.project_id}{rest}"
