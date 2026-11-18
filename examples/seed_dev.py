@@ -55,6 +55,7 @@ DEV_EMAIL = "admin@tirkit.test"
 DEV_PASSWORD = "tirkit-dev-only-password"
 SEED = 20240611
 SYNTHETIC = "synthetic dev data (scripted, no model was called)"
+JUDGE_MODEL = "scripted-judge (synthetic)"
 
 DATASET = "support-faq"
 QUEUE_NAME = "Support answers: weekly review"
@@ -414,7 +415,7 @@ class ScriptedJudge:
         if n_words >= 14 and unit("len", self.rubric.version, question) < self.length_bump:
             v += 1  # longer answers get a better score than they deserve
         v = max(1, min(5, v))
-        return Score(float(v), reason=f"scripted judgement of quality {q} ({SYNTHETIC})")
+        return Score(float(v), reason=f"scripted judgement, quality {q} (synthetic)")
 
     def pairwise_detail(self, example: Any, a: Any, b: Any) -> Any:
         from tirkit.judge import PairwiseResult
@@ -435,7 +436,9 @@ class ScriptedJudge:
         decided = first != "tie" and second != "tie"
         flipped = decided and first != second
         verdict = first if first == second else "tie"
-        return PairwiseResult(verdict, first, second, flipped, (SYNTHETIC, SYNTHETIC))  # type: ignore[arg-type]
+        return PairwiseResult(
+            verdict, first, second, flipped, ("scripted (synthetic)", "scripted (synthetic)")
+        )  # type: ignore[arg-type]
 
 
 # -- synthetic traffic ----------------------------------------------------------------------------
@@ -1218,7 +1221,7 @@ class Seeder:
             scored = judge_labels(rows, judge, human_key="correctness", pairwise=True, seed=0)
             report = reliability_report(scored, human_key="correctness")
             report["synthetic"] = True
-            save_report(self.store, report, rubric, f"scripted-judge ({SYNTHETIC})", source)
+            save_report(self.store, report, rubric, JUDGE_MODEL, source)
             made.append(report)
             self.say(
                 f"  report rubric {rubric.version}: kappa={report.get('kappa', float('nan')):.2f}"
@@ -1251,13 +1254,13 @@ class Seeder:
         wanted = [
             (
                 "online-correctness",
-                {"spec": "judge:correctness", "model": "scripted-judge (synthetic)"},
+                {"spec": "judge:correctness", "model": JUDGE_MODEL},
                 0.5,
                 {"name": "support-agent"},
             ),
             (
                 "online-faithfulness",
-                {"spec": "judge:faithfulness", "model": "scripted-judge (synthetic)"},
+                {"spec": "judge:faithfulness", "model": JUDGE_MODEL},
                 0.3,
                 {"name": "support-agent", "release": "demo-v2"},
             ),

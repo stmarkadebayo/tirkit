@@ -6,6 +6,9 @@ All notable changes to Tirkit are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+- `make dev-seed` now fills every screen of the web UI with synthetic, development-only data: traces, sessions, users, prompts, a three-version dataset, experiments with a regression, a human-labelled annotation queue, judge-reliability reports, online evaluators and alerts. It is deterministic, safe to run twice and needs no network or model (the judge is scripted). See `examples/seed_dev.py`.
+
 ### Changed
 - Code is organised in enforced layers (core, storage, SDK, evaluation, services, delivery); `make lint` runs the import-linter contracts. Shared types live in `tirkit.types` and are still importable from their old modules.
 - `tirkit.store` is now a package and the server is split into per-domain routers; public imports are unchanged.
