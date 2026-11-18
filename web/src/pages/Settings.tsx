@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, projectPath, type ApiKeyInfo as Key, type Member, type Project } from "../api";
 import { usePid, useRole } from "../hooks";
 import { fmtAgo } from "../format";
+import { REDACT_MODES, effectiveMode, redactionCounterText, type RedactMode } from "../redaction";
 
 export default function Settings() {
   const pid = usePid();
@@ -225,24 +226,13 @@ function DataSettings({ pid }: { pid: string }) {
       setMsg(String(e));
     }
   };
+  const mode = effectiveMode(s);
   const patternText = patterns ?? (s.redact_patterns ?? []).map((p) => `${p.pattern} => ${p.label ?? "[REDACTED]"}`).join("\n");
   return (
     <div className="panel">
       <h2>Data</h2>
       <div className="grid">
-        <label className="row">
-          PII redaction
-          <select value={s.redact_mode ?? "off"} onChange={(e) => save({ redact_mode: e.target.value })} aria-label="PII redaction mode">
-            <option value="off">off</option>
-            <option value="secrets">secrets (default)</option>
-            <option value="strict">strict (recommended for production)</option>
-          </select>
-        </label>
-        <div className="small muted">
-          <b>secrets</b>: API keys, tokens, JWTs, card numbers, IBANs and password assignments. <b>strict</b>: also emails, phone numbers and IP addresses.
-          Applied to inputs, outputs and attributes before they are stored. {(project.data?.redactions ?? 0).toLocaleString()} values redacted so far.
-          The SDK can also redact before sending: <code>tirkit.init(redact="strict")</code>.
-        </div>
+        <RedactionControl mode={mode} count={project.data?.redactions} onChange={(m) => save({ redact_mode: m })} />
         <div>
           <div className="small muted">Extra redaction patterns, one per line: <code>regex =&gt; [LABEL]</code></div>
           <textarea rows={3} value={patternText} onChange={(e) => setPatterns(e.target.value)} />
@@ -290,6 +280,34 @@ function DataSettings({ pid }: { pid: string }) {
         {msg && <div className="small muted">{msg}</div>}
       </div>
     </div>
+  );
+}
+
+function RedactionControl({ mode, count, onChange }: { mode: RedactMode; count: number | undefined; onChange: (m: RedactMode) => void }) {
+  return (
+    <fieldset className="mode-group">
+      <legend>PII redaction</legend>
+      <p className="muted small" style={{ margin: "0 0 8px" }}>
+        Applied to inputs, outputs and attributes before they are stored. Changing it affects new traces only.
+      </p>
+      <div className="mode-options">
+        {REDACT_MODES.map((m) => (
+          <label key={m.mode} className={`mode-option${m.mode === mode ? " on" : ""}`}>
+            <input type="radio" name="redact_mode" value={m.mode} checked={m.mode === mode} onChange={() => onChange(m.mode)} />
+            <span>
+              <b>{m.title}</b>
+              <span className="small muted block">{m.summary}</span>
+              <span className="small muted block">{m.catches}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      <p className="small" style={{ margin: "8px 0 0" }}>{redactionCounterText(count, mode)}</p>
+      <p className="small muted" style={{ margin: "4px 0 0" }}>
+        Redaction by the server happens after your data reaches it. To keep values from leaving your process at all, redact in the SDK:{" "}
+        <code>tirkit.init(redact="strict")</code> or <code>TIRKIT_REDACT=strict</code>. Redaction matches patterns; it does not understand names or addresses.
+      </p>
+    </fieldset>
   );
 }
 

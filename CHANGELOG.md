@@ -22,6 +22,13 @@ All notable changes to Tirkit are recorded here. The format follows
 - SDK retries honour `Retry-After`, use jittered exponential backoff and stop after 30 s (Python and TypeScript); the Python exporter defaults to 5 retries instead of 3.
 - The trace page draws only the rows in view and shows every span of a trace, including spans in parent cycles, self-parents and orphans (previously these disappeared); the span tree is built without quadratic copying.
 - The LLM judge's hardened prompt (random delimiters, strict reply format) is off by default; `LLMJudge(hardened=True)` turns it on. The `suspect_injection` flag stays on in every mode.
+- The web UI opens on a new **Overview**: judge reliability first (agreement with human labels and its interval, or "not measured yet" with the label count), then experiments and the CI gate state, then traffic. The old Dashboard is still under Observe. The navigation is grouped Observe, Evaluate, Build.
+- **Judge reliability** is a readable result (headline kappa with its interval and a plain verdict, position and length bias as charts, label count, next step) instead of a nine-column table; the rubric editor is collapsed.
+- The **Traces** list draws only the rows in view and loads 200 at a time, so 10,000 rows scroll smoothly; filters are tiered (search, time range, status, then "More filters") and live in the URL; `j`/`k`, Enter, `x` and `/` work from the keyboard.
+- On phones the navigation is a menu button and a drawer; every page was checked at 375 px for page-level horizontal scroll.
+- Settings shows the redaction mode as three choices with what each removes, the redaction counter and a note about SDK-side redaction.
+- Web pages load on demand, which takes the charting library out of the first bundle.
+- Judge reliability reports now include a 95% bootstrap interval for kappa (`kappa_ci_low`, `kappa_ci_high`); reports stored earlier show no interval.
 
 ### Added
 - Complete OpenAPI schema: every route has request and response models; checked in as `docs/api/openapi.json` and kept current by CI.
@@ -80,6 +87,8 @@ All notable changes to Tirkit are recorded here. The format follows
 - Span kinds `vector_db`, `mcp_tool`, `human`, `computer_use`, `retry` and `fallback`; `tirkit.retry`, `tirkit.with_retry` and `tirkit.fallback` record attempts and the option that answered; `Span.mark_first_token()`.
 - Trace sampling: `tirkit.init(sample_rate=..., sampling_rules=[...])`, `TIRKIT_SAMPLE_RATE`; whole traces kept or dropped, failed spans always kept.
 - `reasoning_tokens` usage unit (OpenAI, Gemini, OTLP); dashboard metrics report prompt-cache hit rate, reasoning tokens and time to first token p50/p95.
+- First-run checklist on the Overview: create a key, copy a Python, TypeScript or OpenTelemetry snippet with the project's host and public key, watch "listening" turn into "Got it", then build a dataset, run an experiment, label 20 items and check judge reliability. Each step shows done or not done from real data; the list can be dismissed and disappears when everything is done.
+- Empty Traces, Datasets, Experiments, Annotation and Online evals screens offer a one-click path or a ready-to-copy snippet.
 
 ### Fixed
 - Alerts created through the API without `window_s` showed "NaN min" in the UI.

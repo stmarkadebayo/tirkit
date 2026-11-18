@@ -89,6 +89,27 @@ def cohen_kappa(rater_a: Sequence[Hashable], rater_b: Sequence[Hashable]) -> flo
     return (p_o - p_e) / (1 - p_e)
 
 
+def kappa_ci(
+    rater_a: Sequence[Hashable],
+    rater_b: Sequence[Hashable],
+    *,
+    n_resamples: int = 2_000,
+    alpha: float = 0.05,
+    seed: int = 0,
+) -> tuple[float, float]:
+    """Percentile bootstrap CI for Cohen's kappa: resample the labelled items with replacement."""
+    n = len(rater_a)
+    if n != len(rater_b) or n == 0:
+        raise ValueError("need two equal, non-empty label lists")
+    rng = random.Random(seed)
+    values = []
+    for _ in range(n_resamples):
+        idx = rng.choices(range(n), k=n)
+        values.append(cohen_kappa([rater_a[i] for i in idx], [rater_b[i] for i in idx]))
+    values.sort()
+    return _percentile(values, alpha / 2), _percentile(values, 1 - alpha / 2)
+
+
 def weighted_kappa(
     rater_a: Sequence[int], rater_b: Sequence[int], *, categories: Sequence[int] | None = None
 ) -> float:

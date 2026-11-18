@@ -6,6 +6,8 @@ import { usePid } from "../hooks";
 import { fmtAgo, fmtMs, preview } from "../format";
 import { CIBar } from "../components/Charts";
 import { Content } from "../components/Content";
+import { CodeBlock } from "../components/CodeBlock";
+import { EmptyState } from "../components/EmptyState";
 
 const ci = (c?: [number, number]) => (c ? `[${c[0].toFixed(3)}, ${c[1].toFixed(3)}]` : "");
 
@@ -86,8 +88,20 @@ export function Experiments() {
               ))}
               {q.data && !q.data.length && (
                 <tr>
-                  <td colSpan={6} className="empty">
-                    No experiments yet. Run <code>tirkit run dataset.jsonl app:answer -s exact_match</code> or start one from the playground.
+                  <td colSpan={6}>
+                    <EmptyState
+                      title="Run your first experiment"
+                      code={
+                        <CodeBlock
+                          code={`# 1. test cases in dataset.jsonl, one {"input": ..., "expected": ...} per line
+# 2. run your app over them; the result also appears here
+export TIRKIT_HOST=${window.location.origin}   # plus TIRKIT_PUBLIC_KEY and TIRKIT_SECRET_KEY
+tirkit run dataset.jsonl app:answer -s exact_match --out baseline.json`}
+                        />
+                      }
+                    >
+                      <p>An experiment scores a prompt or model over a dataset. It appears here, and you can compare it with the next one. You can also start one from the <Link to={`/p/${pid}/playground`}>Playground</Link>.</p>
+                    </EmptyState>
                   </td>
                 </tr>
               )}
