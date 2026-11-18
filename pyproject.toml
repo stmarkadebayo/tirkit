@@ -23,6 +23,11 @@ dependencies = [
     "httpx",
 ]
 
+[project.urls]
+Repository = "https://github.com/stmarkadebayo/tirkit"
+Issues = "https://github.com/stmarkadebayo/tirkit/issues"
+Changelog = "https://github.com/stmarkadebayo/tirkit/blob/main/CHANGELOG.md"
+
 [project.optional-dependencies]
 server = [
     "fastapi>=0.115",
