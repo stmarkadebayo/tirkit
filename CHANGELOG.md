@@ -89,6 +89,7 @@ All notable changes to Tirkit are recorded here. The format follows
 - `reasoning_tokens` usage unit (OpenAI, Gemini, OTLP); dashboard metrics report prompt-cache hit rate, reasoning tokens and time to first token p50/p95.
 - First-run checklist on the Overview: create a key, copy a Python, TypeScript or OpenTelemetry snippet with the project's host and public key, watch "listening" turn into "Got it", then build a dataset, run an experiment, label 20 items and check judge reliability. Each step shows done or not done from real data; the list can be dismissed and disappears when everything is done.
 - Empty Traces, Datasets, Experiments, Annotation and Online evals screens offer a one-click path or a ready-to-copy snippet.
+- A release workflow (`.github/workflows/release.yml`) and `docs/RELEASING.md`: a version tag builds the wheel with the UI, checks it, and publishes to PyPI (trusted publishing), npm and GHCR.
 
 ### Fixed
 - Alerts created through the API without `window_s` showed "NaN min" in the UI.
