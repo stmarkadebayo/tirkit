@@ -265,7 +265,7 @@ button:active, .btn:active { transform: scale(0.97); }
 .linklike { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-decoration: underline; }
 .linklike:hover { background: none; }
 .codeblock { position: relative; }
-.codeblock pre { margin: 0; background: var(--panel-2); border-radius: 6px; padding: 12px 12px 12px; overflow-x: auto; white-space: pre; max-height: 320px; }
+.codeblock pre { margin: 0; background: var(--panel-2); border-radius: 6px; padding: 34px 12px 12px; overflow-x: auto; white-space: pre; max-height: 320px; }
 .copy-btn { position: absolute; top: 6px; right: 6px; font-size: 12px; padding: 3px 9px; }
 .progress { height: 4px; background: var(--panel-2); border-radius: 2px; margin: 10px 0 4px; overflow: hidden; }
 .progress > div { height: 100%; background: var(--accent); }

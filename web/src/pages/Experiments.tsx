@@ -93,8 +93,8 @@ export function Experiments() {
                       title="Run your first experiment"
                       code={
                         <CodeBlock
-                          code={`# 1. a dataset: Datasets > Build from recent traces, then export it (or use any JSONL file)
-# 2. score your app over it
+                          code={`# 1. test cases in dataset.jsonl, one {"input": ..., "expected": ...} per line
+# 2. run your app over them; the result also appears here
 export TIRKIT_HOST=${window.location.origin}   # plus TIRKIT_PUBLIC_KEY and TIRKIT_SECRET_KEY
 tirkit run dataset.jsonl app:answer -s exact_match --out baseline.json`}
                         />
