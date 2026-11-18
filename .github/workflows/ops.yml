@@ -39,7 +39,7 @@ jobs:
     env:
       PG_URL: postgresql://tirkit:tirkit@localhost:5432/tirkit
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -65,7 +65,7 @@ jobs:
       CHART: deploy/helm/tirkit
       KUBECONFORM_VERSION: v0.6.7
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: azure/setup-helm@v4
         with:
           version: v3.16.3
