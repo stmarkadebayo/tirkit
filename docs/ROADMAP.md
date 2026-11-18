@@ -5,6 +5,31 @@ Planned work that is not built yet. [PLAN.md](PLAN.md) stays the source of truth
 **Standing rules for everything below**
 - Tirkit runs inside other people's apps. Tracing must add no meaningful latency (current p99 overhead is in README Results; re-measure after any change to the hot path) and ideally help (batching, backoff, sampling, caching).
 - Positioning: the differentiator is test sets mined from production and a judge you can trust. The UI leads with judge reliability, not the trace list.
+- Two front doors, one product: everything works from the terminal and from the UI, for experienced and new developers alike, and setup works when a coding assistant does it from the docs alone.
+
+## Setup, terminal and coding assistants
+- `tirkit init`: detects the project (Python or TypeScript; OpenAI, Anthropic, LangChain and others), writes the `TIRKIT_*` lines to `.env`, adds the two setup lines, sends a test trace and prints its link. Interactive by default, fully scriptable with flags so an assistant can run it.
+- `tirkit login`: opens the browser, creates an API key and stores it in the user's config (outside the repo), so nobody pastes keys by hand.
+- `tirkit doctor`: checks server, keys, instrumentation and flushing, and says in plain words what to fix.
+- Docs written for coding assistants: `llms.txt` and `llms-full.txt` on the docs site, a copy-paste setup prompt in the quickstart and onboarding ("Set up Tirkit in this project using https://…/llms.txt"), and a drop-in skill / `AGENTS.md` section for users' repos.
+- MCP server (`tirkit mcp`): assistants can search traces, pull failing cases, build datasets, start experiments and read comparisons and judge reports from the IDE.
+- Parity: every UI action has a CLI and API equivalent, every CLI command has `--json`, and each UI screen shows its CLI equivalent.
+- No-code path after setup: build a dataset from traces, write a rubric in plain language, run an experiment and read the result in plain words, all from the UI.
+- Measure: minutes and steps from nothing to a first trace, by a person following the quickstart and by a coding assistant given only the docs URL.
+
+## Statistical integrity
+- An interval on every compared number: weighted and pass/fail kappa, flip rate (stored, not only computed in the UI), length bias, dashboard score trends and score alerts.
+- A contract test that fails if any score, rate or agreement field in the API has no interval or sample size.
+- Statistics tested against reference implementations, and coverage simulations showing each 95% interval covers the truth about 95% of the time.
+- The CI gate's false-alarm and catch rates, measured by simulation.
+- A public methodology page: every statistic, its assumptions, minimum sample sizes and what Tirkit does not claim.
+
+## Inference quality
+- Inference attributes on spans: engine and version, quantisation, GPU type, time to first token, tokens per second, queue time, batch size (vLLM and SGLang first).
+- Config experiments: the same production-mined dataset across serving configs (model, quantisation, engine version, flags), with the quality difference and its 95% CI next to latency and cost per 1,000 requests.
+- A cost/quality frontier chart, and a CI gate for model and engine upgrades as well as prompt changes.
+- Shadow comparison: score a sampled share of production traffic on a candidate endpoint (budgeted, off by default).
+- A measured demo: the same local model at 4-bit and 8-bit on the QA set, quality with a 95% CI, plus speed.
 
 ## Security hardening (first)
 - Login rate limiting and lockout; per-key ingestion rate limits.
