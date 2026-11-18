@@ -59,7 +59,8 @@ jobs:
       - run: pytest -q -m "not server and not acceptance"
 
   server:
-    runs-on: ubuntu-latest
+    # Pinned: the Postgres 16 client tools below are not in the newer default image.
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16-alpine

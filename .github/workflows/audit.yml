@@ -29,10 +29,12 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install the server extra (what the Docker image ships) and pip-audit
-        # Editable, so that --skip-editable leaves out Tirkit itself (not on PyPI until released).
         run: pip install -e ".[server]" pip-audit
       - name: Audit installed packages
-        run: pip-audit --strict --skip-editable
+        # Everything but Tirkit itself (not on PyPI until it is released), pinned as installed.
+        run: |
+          pip freeze --exclude-editable > audit-requirements.txt
+          pip-audit --strict --no-deps --disable-pip -r audit-requirements.txt
   npm-audit:
     runs-on: ubuntu-latest
     strategy:
