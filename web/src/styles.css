@@ -241,6 +241,12 @@ button:active, .btn:active { transform: scale(0.97); }
 .vtable { height: clamp(320px, calc(100dvh - 330px), 1000px); overflow: auto; position: relative; }
 .vtable:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .vtable-inner { min-width: 980px; }
+.vrow { grid-template-columns: 32px 84px minmax(130px, 1fr) minmax(170px, 2fr) minmax(170px, 2fr) 84px 72px 88px 110px; }
+@media (max-width: 1240px) {
+  .vtable-inner { min-width: 740px; }
+  .vrow { grid-template-columns: 32px 84px minmax(130px, 1fr) minmax(160px, 2fr) minmax(160px, 2fr) 84px 88px; }
+  .col-tokens, .col-user { display: none; }
+}
 .vrow { display: grid; align-items: center; border-bottom: 1px solid var(--border); font-size: 13.5px; }
 .vrow.clickable { cursor: pointer; }
 .vrow.vhead { position: sticky; top: 0; z-index: 2; background: var(--panel); font-size: 12px; font-weight: 600; color: var(--muted); }

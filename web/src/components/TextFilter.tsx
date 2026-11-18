@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 
 /** A text input that commits to its owner after a short pause or on Enter, and follows the owner's value
  *  when it changes from outside (for example "Clear filters"). */
@@ -7,10 +7,12 @@ export const TextFilter = forwardRef<
   { value: string; onCommit: (v: string) => void; placeholder: string; label: string; width?: number | string; type?: string }
 >(function TextFilter({ value, onCommit, placeholder, label, width, type = "search" }, ref) {
   const [text, setText] = useState(value);
+  const commit = useRef(onCommit);
+  commit.current = onCommit;
   useEffect(() => setText(value), [value]);
   useEffect(() => {
     if (text === value) return;
-    const t = setTimeout(() => onCommit(text), 350);
+    const t = setTimeout(() => commit.current(text), 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);

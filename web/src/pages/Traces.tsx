@@ -14,7 +14,6 @@ import { moveCursor, scrollToRow, visibleRange } from "../windowing";
 const ROW_H = 44;
 const HEAD_H = 36;
 const BATCH = 200;
-const COLS = "32px 84px minmax(130px, 1fr) minmax(180px, 2fr) minmax(180px, 2fr) 84px 72px 88px 110px";
 
 function isTyping(el: EventTarget | null): boolean {
   if (!(el instanceof HTMLElement)) return false;
@@ -34,7 +33,7 @@ export default function Traces() {
   const listRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const get = (k: FilterKey) => params.get(k) || "";
-  const set = (k: FilterKey, v: string) => setParams(withParam(params, k, v), { replace: true });
+  const set = (k: FilterKey, v: string) => setParams((cur) => withParam(cur, k, v), { replace: true });
   const range = rangeOf(params);
   const [now] = useState(() => Math.floor(Date.now() / 1000));
   const filters = useQuery({ queryKey: ["filters", pid], queryFn: () => api<Filters>(projectPath(pid, "/filters")) });
@@ -214,16 +213,16 @@ export default function Traces() {
           onScroll={onScroll}
         >
           <div className="vtable-inner">
-            <div className="vrow vhead" role="row" style={{ gridTemplateColumns: COLS, height: HEAD_H }}>
+            <div className="vrow vhead" role="row" style={{ height: HEAD_H }}>
               <div role="columnheader" aria-label="Select" />
               <div role="columnheader" className="vcell">Time</div>
               <div role="columnheader" className="vcell">Name</div>
               <div role="columnheader" className="vcell">Input</div>
               <div role="columnheader" className="vcell">Output</div>
               <div role="columnheader" className="vcell num">Latency</div>
-              <div role="columnheader" className="vcell num">Tokens</div>
+              <div role="columnheader" className="vcell num col-tokens">Tokens</div>
               <div role="columnheader" className="vcell num">Cost</div>
-              <div role="columnheader" className="vcell">User</div>
+              <div role="columnheader" className="vcell col-user">User</div>
             </div>
             <div style={{ height: win.totalHeight, position: "relative" }}>
               <div style={{ position: "absolute", top: 0, left: 0, right: 0, transform: `translateY(${win.offsetTop}px)` }}>
@@ -237,7 +236,7 @@ export default function Traces() {
                       aria-rowindex={i + 2}
                       aria-selected={cursor === i}
                       className={`vrow clickable${cursor === i ? " active" : ""}`}
-                      style={{ gridTemplateColumns: COLS, height: ROW_H }}
+                      style={{ height: ROW_H }}
                       onClick={() => nav(`/p/${pid}/traces/${t.trace_id}`)}
                     >
                       <div role="gridcell" onClick={(e) => e.stopPropagation()} className="vcell check">
@@ -253,9 +252,9 @@ export default function Traces() {
                       <div role="gridcell" className="vcell" title={preview(t.input, 400)}>{preview(t.input, 200) || <span className="muted">—</span>}</div>
                       <div role="gridcell" className="vcell" title={preview(t.output, 400)}>{preview(t.output, 200) || <span className="muted">—</span>}</div>
                       <div role="gridcell" className="vcell num">{fmtMs(t.duration_ms)}</div>
-                      <div role="gridcell" className="vcell num">{(t.input_tokens ?? 0) + (t.output_tokens ?? 0) ? fmtNum((t.input_tokens ?? 0) + (t.output_tokens ?? 0)) : "—"}</div>
+                      <div role="gridcell" className="vcell num col-tokens">{(t.input_tokens ?? 0) + (t.output_tokens ?? 0) ? fmtNum((t.input_tokens ?? 0) + (t.output_tokens ?? 0)) : "—"}</div>
                       <div role="gridcell" className="vcell num">{fmtCost(t.cost_usd)}</div>
-                      <div role="gridcell" className="vcell small" title={t.user_id ?? ""}>{t.user_id || <span className="muted">—</span>}</div>
+                      <div role="gridcell" className="vcell small col-user" title={t.user_id ?? ""}>{t.user_id || <span className="muted">—</span>}</div>
                     </div>
                   );
                 })}
