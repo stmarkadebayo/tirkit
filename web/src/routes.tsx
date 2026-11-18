@@ -5,7 +5,8 @@ import { Compare, ExperimentView, Experiments } from "./pages/Experiments";
 import { Annotation, Labeller } from "./pages/Annotation";
 import { PromptView, Prompts } from "./pages/Prompts";
 import Playground from "./pages/Playground";
-import { AlertsPage, JudgeReliability, OnlineEvals } from "./pages/Online";
+import { AlertsPage, OnlineEvals } from "./pages/Online";
+import { JudgeReliability } from "./pages/Judge";
 import Audit from "./pages/Audit";
 
 export interface NavItem {
