@@ -82,7 +82,7 @@ export default function Layout() {
             </svg>
           </button>
         </div>
-        <select aria-label="Project" value={pid} onChange={(e) => nav(`/p/${e.target.value}/dashboard`)} style={{ margin: "0 4px 8px" }}>
+        <select aria-label="Project" value={pid} onChange={(e) => nav(`/p/${e.target.value}/overview`)} style={{ margin: "0 4px 8px" }}>
           {me.data?.projects.map((p) => (
             <option key={p.project_id} value={p.project_id}>
               {p.name}

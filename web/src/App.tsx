@@ -5,6 +5,7 @@ import { useMe } from "./hooks";
 import Layout from "./components/Layout";
 import { Login, Setup } from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Overview from "./pages/Overview";
 import Traces from "./pages/Traces";
 import TraceView from "./pages/TraceView";
 import { SessionView, Sessions } from "./pages/Sessions";
@@ -20,7 +21,7 @@ function Home() {
   if (!me.data) return <Navigate to="/login" replace />;
   const first = me.data.projects[0];
   if (!first) return <div className="center">You are not a member of any project yet. Ask an admin to add you.</div>;
-  return <Navigate to={`/p/${first.project_id}/dashboard`} replace />;
+  return <Navigate to={`/p/${first.project_id}/overview`} replace />;
 }
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -44,7 +45,8 @@ export default function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route index element={<Navigate to="overview" replace />} />
+        <Route path="overview" element={<Overview />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="traces" element={<Traces />} />
         <Route path="traces/:tid" element={<TraceView />} />

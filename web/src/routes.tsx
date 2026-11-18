@@ -34,6 +34,7 @@ export const extraRoutes: ReactNode[] = [
 
 /** Navigation in display order (docs/DECISIONS.md 66): Overview first, then Observe, Evaluate, Build. */
 export const NAV: NavItem[] = [
+  { to: "overview", label: "Overview", section: "" },
   { to: "traces", label: "Traces", section: "Observe" },
   { to: "sessions", label: "Sessions", section: "Observe" },
   { to: "users", label: "Users", section: "Observe" },
