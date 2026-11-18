@@ -5,6 +5,7 @@ import { RANGES, usePid } from "../hooks";
 import { TimeChart } from "../components/Charts";
 import { fmtCompact, fmtCost, fmtMs, fmtNum } from "../format";
 import { Stat } from "../components/Stat";
+import { mergeScores } from "../scoreTrend";
 
 export function RangePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
@@ -115,9 +116,11 @@ export default function Dashboard() {
             <TimeChart
               data={mergeScores(m.data!)}
               span={span}
+              intervals
               format={(v) => v.toFixed(2)}
               series={scoreNames.map((n) => ({ key: n, label: n }))}
             />
+            <div className="small muted">Points: average per period. Whiskers: its 95% interval (shown from two scores up). Where whiskers overlap, the change may be noise.</div>
           </div>
         )}
       </div>
@@ -167,16 +170,4 @@ export default function Dashboard() {
       </div>
     </div>
   );
-}
-
-function mergeScores(m: Metrics): Record<string, number>[] {
-  const byT = new Map<number, Record<string, number>>();
-  for (const [name, pts] of Object.entries(m.scores)) {
-    for (const p of pts) {
-      const row = byT.get(p.t) ?? { t: p.t };
-      row[name] = p.mean;
-      byT.set(p.t, row);
-    }
-  }
-  return [...byT.values()].sort((a, b) => a.t - b.t);
 }

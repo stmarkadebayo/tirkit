@@ -8872,6 +8872,30 @@
           "n": {
             "type": "integer",
             "title": "N"
+          },
+          "ci_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci Low",
+            "description": "95% t interval for the mean; null below 2."
+          },
+          "ci_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci High",
+            "description": "95% t interval for the mean; null below 2."
           }
         },
         "additionalProperties": false,

@@ -46,13 +46,25 @@ every step is done.
 - **Agreement with your labels:** kappa with its interval, a verdict, and a bar showing where it falls
   between "not reliable" (under 0.4), "some agreement" (0.4 to 0.6) and "agrees well" (0.6 or more).
   These cut-offs are conventions, not guarantees.
-- **Position bias:** the share of verdicts that flip when two answers swap places (under 10% is good).
-- **Length bias:** how strongly the judge's score follows answer length, next to the same figure for
-  your labels. The two should be close.
+- **Position bias:** the share of verdicts that flip when two answers swap places (under 10% is good),
+  with its 95% interval.
+- **Length bias:** how much more the judge's score follows answer length than your labels do (judge
+  minus humans), with its 95% interval. An interval that includes 0 means no length bias was shown.
+- **More numbers:** exact agreement, weighted kappa and pass/fail kappa, each with its 95% interval.
+  **Earlier reports** list kappa and its interval for every rubric version.
 - **Labels** counts the labels behind the result and says what to do next.
-- Reports made before intervals were recorded show no interval, and a figure that was not measured
-  says **not measured yet**, never zero. **Run a judge against your labels** and the rubric editor are
-  collapsed at the bottom.
+- Reports made before intervals were recorded say **no interval recorded** (run the report again to
+  get one), and a figure that was not measured says **not measured yet**, never zero. **Run a judge
+  against your labels** and the rubric editor are collapsed at the bottom.
+
+## Dashboard and alerts
+
+- **Scores** plots each score's average per period, with its 95% interval as whiskers on each point
+  and in the tooltip (shown from two scores in a period up). Where whiskers overlap, the change may be noise.
+- A **score average** alert fires only when the whole 95% interval of the average is past the
+  threshold, so a few low scores do not page anyone. Its message gives the average, the interval and
+  the number of scores. Error-rate, latency, cost and trace-count alerts compare the measured value
+  directly, because they count all traffic, not a sample.
 
 ## Settings: redaction
 

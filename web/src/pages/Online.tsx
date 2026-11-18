@@ -216,7 +216,7 @@ export function AlertsPage() {
               <option value="p95_latency_ms">p95 latency (ms)</option>
               <option value="cost_usd">cost (USD)</option>
               <option value="trace_count">trace count</option>
-              <option value="score_mean">score average</option>
+              <option value="score_mean">score average (fires when its 95% interval is past the threshold)</option>
             </select>
             {f.metric === "score_mean" && <input placeholder="score name" value={f.score} onChange={(e) => setF({ ...f, score: e.target.value })} />}
             <select value={f.op} onChange={(e) => setF({ ...f, op: e.target.value })} aria-label="Operator">

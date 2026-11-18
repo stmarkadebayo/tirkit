@@ -2532,6 +2532,16 @@ export interface components {
             mean: number;
             /** N */
             n: number;
+            /**
+             * Ci Low
+             * @description 95% t interval for the mean; null below 2.
+             */
+            ci_low?: number | null;
+            /**
+             * Ci High
+             * @description 95% t interval for the mean; null below 2.
+             */
+            ci_high?: number | null;
         };
         /** ScoreRequest */
         ScoreRequest: {

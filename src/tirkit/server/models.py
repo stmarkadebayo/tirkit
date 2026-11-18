@@ -493,6 +493,8 @@ class ScorePoint(Out):
     t: float
     mean: float
     n: int
+    ci_low: float | None = Field(None, description="95% t interval for the mean; null below 2.")
+    ci_high: float | None = Field(None, description="95% t interval for the mean; null below 2.")
 
 
 class Metrics(Out):

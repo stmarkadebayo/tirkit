@@ -2,9 +2,24 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
+from tirkit import stats
 from tirkit.store.base import StoreBase
+
+
+def score_summary(n: int, mean: float, sum_squares: float) -> dict[str, Any]:
+    """Mean, count and 95% t interval of a score from SQL aggregates (AVG, COUNT, SUM(v*v)).
+    The interval is None below two scores."""
+    var = max(0.0, (sum_squares - n * mean * mean) / (n - 1)) if n >= 2 else 0.0
+    ci = stats.mean_ci_t(n, mean, math.sqrt(var))
+    return {
+        "mean": mean,
+        "n": n,
+        "ci_low": ci[0] if ci else None,
+        "ci_high": ci[1] if ci else None,
+    }
 
 
 def _pct(sorted_values: list[float], q: float) -> float:
@@ -154,13 +169,14 @@ class AnalyticsMixin(StoreBase):
             )
         score_rows = self.execute(
             f"SELECT CAST((created - {float(since)!r}) / {width!r} AS INTEGER), name, AVG(value), "
-            "COUNT(value) FROM scores WHERE project_id = ? AND created >= ? AND created < ? "
-            "AND value IS NOT NULL AND experiment_id IS NULL GROUP BY 1, name",
+            "COUNT(value), SUM(value * value) FROM scores WHERE project_id = ? AND created >= ? "
+            "AND created < ? AND value IS NOT NULL AND experiment_id IS NULL GROUP BY 1, name",
             [self.project_id, since, until],
         )
-        scores: dict[str, dict[int, dict[str, float]]] = {}
-        for b, name, avg, n in score_rows:
-            scores.setdefault(str(name), {})[int(b)] = {"mean": float(avg), "n": int(n)}
+        scores: dict[str, dict[int, dict[str, Any]]] = {}
+        for b, name, avg, n, sumsq in score_rows:
+            point = score_summary(int(n), float(avg), float(sumsq or 0.0))
+            scores.setdefault(str(name), {})[int(b)] = point
         return {
             "since": since,
             "until": until,

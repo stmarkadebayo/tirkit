@@ -1,4 +1,5 @@
-"""Threshold alerts on error rate, latency, cost or a score average (SPEC FR-10).
+"""Threshold alerts on error rate, latency, cost or a score average (SPEC FR-10). A score
+average fires only when its 95% interval is wholly past the threshold (docs/DECISIONS.md).
 
 A rule names a metric over a trailing window and a threshold. The worker evaluates rules every
 minute and notifies on state changes (ok → firing, firing → ok) through a webhook (Slack-compatible
@@ -19,6 +20,7 @@ from typing import Any
 
 from tirkit import netguard
 from tirkit.store import SQLStore
+from tirkit.store.analytics import score_summary
 
 log = logging.getLogger("tirkit.alerts")
 
@@ -46,18 +48,31 @@ def _validate(rule: dict[str, Any], channel: dict[str, Any]) -> None:
         raise ValueError("channel type must be webhook or email")
 
 
+def score_window(
+    store: SQLStore, rule: dict[str, Any], now: float | None = None
+) -> dict[str, Any] | None:
+    """Mean, count and 95% t interval of the rule's score over its window (None: no scores)."""
+    now = now or time.time()
+    since = now - float(rule.get("window_s", 3600))
+    rows = store.execute(
+        "SELECT AVG(value), COUNT(value), SUM(value * value) FROM scores WHERE project_id = ? "
+        "AND name = ? AND created >= ? AND value IS NOT NULL AND experiment_id IS NULL",
+        [store.project_id, rule["score_name"], since],
+    )
+    if not rows or rows[0][0] is None:
+        return None
+    avg, n, sumsq = rows[0]
+    return score_summary(int(n), float(avg), float(sumsq or 0.0))
+
+
 def measure(store: SQLStore, rule: dict[str, Any], now: float | None = None) -> float | None:
     """Current value of the rule's metric over its window (None when there is no data)."""
     now = now or time.time()
     since = now - float(rule.get("window_s", 3600))
     m = rule["metric"]
     if m == "score_mean":
-        rows = store.execute(
-            "SELECT AVG(value) FROM scores WHERE project_id = ? AND name = ? AND created >= ? "
-            "AND value IS NOT NULL AND experiment_id IS NULL",
-            [store.project_id, rule["score_name"], since],
-        )
-        return float(rows[0][0]) if rows and rows[0][0] is not None else None
+        w = score_window(store, rule, now)
+        return None if w is None else float(w["mean"])
     rows = store.execute(
         "SELECT COUNT(*), SUM(has_error), SUM(cost_usd) FROM traces WHERE project_id = ? "
         "AND start_time >= ? AND start_time < ?",
@@ -156,11 +171,30 @@ class Alerts:
     def check(self, alert: dict[str, Any], now: float | None = None) -> str:
         now = now or time.time()
         rule = alert["rule"]
-        value = measure(self.store, rule, now)
         threshold = float(rule["threshold"])
-        firing = value is not None and (
-            value > threshold if rule["op"] == ">" else value < threshold
-        )
+        detail = ""
+        if rule["metric"] == "score_mean":
+            # Scores are a sample (online evals sample traffic), so the alert fires only when
+            # the whole 95% interval of the mean is past the threshold, not on noise.
+            w = score_window(self.store, rule, now)
+            value = None if w is None else float(w["mean"])
+            lo = None if w is None else w["ci_low"]
+            hi = None if w is None else w["ci_high"]
+            firing = lo is not None and hi is not None and (
+                lo > threshold if rule["op"] == ">" else hi < threshold
+            )
+            if w is not None:
+                interval = (
+                    "no interval below two scores"
+                    if lo is None or hi is None
+                    else f"95% interval {round(lo, 4)} to {round(hi, 4)}"
+                )
+                detail = f" ({interval}, {w['n']} scores)"
+        else:
+            value = measure(self.store, rule, now)
+            firing = value is not None and (
+                value > threshold if rule["op"] == ">" else value < threshold
+            )
         state = "firing" if firing else "ok"
         self.store.execute(
             "UPDATE alerts SET state = ?, last_value = ?, last_checked = ? WHERE project_id = ? "
@@ -171,7 +205,7 @@ class Alerts:
             subject = f"[Tirkit] {alert['name']}: {'FIRING' if firing else 'resolved'}"
             text = (
                 f"{rule['metric']} over the last {int(rule.get('window_s', 3600)) // 60} min is "
-                f"{value if value is None else round(value, 4)} "
+                f"{value if value is None else round(value, 4)}{detail} "
                 f"(threshold {rule['op']} {threshold})."
                 f"\nProject {self.pid}."
             )
