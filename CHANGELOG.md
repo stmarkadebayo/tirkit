@@ -100,6 +100,7 @@ All notable changes to Tirkit are recorded here. The format follows
 - Vitest for the web UI (`npm test` in `web/`).
 - `research/benchmarks/bench_query.py` runs on SQLite or Postgres at any size (10M spans supported), seeds a 10,000-span trace and times trace opens.
 - The wheel now carries the web UI (`make dist` builds it into the package; CI checks the wheel with `scripts/check_wheel.py`), so `pip install "tirkit[server]" && tirkit serve` shows the UI instead of only the API.
+- `tirkit backup` on Postgres refuses a `pg_dump` newer than the server, with a message naming both versions: such a dump can contain settings an older server does not know and would fail to restore. CI now installs the Postgres 16 client tools for the server job, and `pip-audit` skips Tirkit's own package.
 
 ### Security
 - Sign-in throttling per account, per address and server-wide with a progressive delay (never a permanent lock-out), generic errors and `Retry-After`; `TIRKIT_TRUSTED_PROXIES` for the real client address behind reverse proxies.

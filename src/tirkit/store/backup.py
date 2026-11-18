@@ -356,6 +356,33 @@ def _run_pg(cmd: list[str], env: dict[str, str], **kw: Any) -> None:
         raise BackupError(f"{cmd[0]} failed ({proc.returncode}): {err[-2000:]}")
 
 
+_PG_VERSION = re.compile(r"\(PostgreSQL\)\s+(\d+)")
+
+
+def _client_major(cmd: list[str], env: dict[str, str]) -> int | None:
+    """Major version of the ``pg_dump`` that will run, or None when it cannot be read."""
+    try:
+        done = subprocess.run(
+            [*cmd, "--version"], env=env, capture_output=True, check=False, timeout=30
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    found = _PG_VERSION.search(done.stdout.decode(errors="replace"))
+    return int(found.group(1)) if found else None
+
+
+def _check_client_version(client_major: int | None, server_version_num: int) -> None:
+    """Refuse a ``pg_dump`` newer than the server: its dump can contain settings an older server
+    does not know, so the backup would be written but could not be restored."""
+    server_major = server_version_num // 10000
+    if client_major is not None and client_major > server_major:
+        raise BackupError(
+            f"pg_dump is version {client_major} but the server is version {server_major}: a dump "
+            "from a newer client may not restore into this server. Install the Postgres "
+            f"{server_major} client tools, or point $TIRKIT_PG_DUMP at them"
+        )
+
+
 def _backup_postgres(url: str, out: Path, sample: int | None) -> dict[str, Any]:
     import psycopg
 
@@ -365,6 +392,8 @@ def _backup_postgres(url: str, out: Path, sample: int | None) -> dict[str, Any]:
         conn.isolation_level = psycopg.IsolationLevel.REPEATABLE_READ
         conn.read_only = True
         with conn.cursor() as cur:
+            cur.execute("SHOW server_version_num")
+            server_version_num = int(cur.fetchone()[0])  # type: ignore[index]
             cur.execute("SELECT pg_export_snapshot()")
             snapshot = cur.fetchone()[0]  # type: ignore[index]
             # The fingerprint and pg_dump see the same snapshot, so they agree even under load.
@@ -373,7 +402,9 @@ def _backup_postgres(url: str, out: Path, sample: int | None) -> dict[str, Any]:
                 "tables": _fingerprint(cur, "postgres", sample),
                 "known_media": _media_hashes(cur),
             }
-        cmd = _pg_command("TIRKIT_PG_DUMP", "pg_dump") + [
+        dump = _pg_command("TIRKIT_PG_DUMP", "pg_dump")
+        _check_client_version(_client_major(dump, env), server_version_num)
+        cmd = dump + [
             "--format=custom",
             f"--snapshot={snapshot}",
             f"--dbname={dsn}",

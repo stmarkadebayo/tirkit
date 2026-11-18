@@ -329,3 +329,45 @@ def test_postgres_drill_backup_wipe_restore_compare(tmp_path: Path) -> None:
     st.close()
     assert after == before
     assert len(found) == 20
+
+
+# -- the pg_dump client must not be newer than the server --------------------------------------
+
+
+def test_pg_client_version_is_read_from_the_version_line() -> None:
+    import subprocess
+
+    from tirkit.store import backup as b
+
+    for line, major in [
+        ("pg_dump (PostgreSQL) 16.4 (Debian 16.4-1.pgdg120+1)", 16),
+        ("pg_dump (PostgreSQL) 17.2", 17),
+        ("pg_dump (PostgreSQL) 9.6.24", 9),
+    ]:
+        done = subprocess.CompletedProcess([], 0, stdout=line.encode(), stderr=b"")
+        import pytest
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(b.subprocess, "run", lambda *a, d=done, **k: d)
+            assert b._client_major(["pg_dump"], {}) == major
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(b.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError()))
+        assert b._client_major(["pg_dump"], {}) is None
+
+
+def test_a_newer_pg_dump_than_the_server_is_refused_with_a_clear_message() -> None:
+    import pytest
+
+    from tirkit.store.backup import BackupError, _check_client_version
+
+    with pytest.raises(BackupError, match="version 17.*server is version 16"):
+        _check_client_version(17, 160004)
+
+
+@pytest.mark.parametrize(
+    "client,server", [(16, 160004), (15, 160004), (None, 160004), (14, 140012)]
+)
+def test_same_or_older_or_unknown_pg_dump_is_accepted(client: int | None, server: int) -> None:
+    from tirkit.store.backup import _check_client_version
+
+    _check_client_version(client, server)
