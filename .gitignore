@@ -52,3 +52,5 @@ labels/private/
 .idea/
 .vscode/
 *.swp
+# UI copied into the package by `make dist`
+src/tirkit/server/web/

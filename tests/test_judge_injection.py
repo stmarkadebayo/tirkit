@@ -18,8 +18,15 @@ from tirkit import injection
 from tirkit.datasets import Example
 from tirkit.judge import (
     POINTWISE_TEMPLATE,
-    LLMJudge,
 )
+from tirkit.judge import LLMJudge as _LLMJudge
+
+
+def LLMJudge(*args: Any, **kwargs: Any) -> _LLMJudge:  # noqa: N802
+    """These tests are about the hardened prompt, which is off by default (decision 65)."""
+    kwargs.setdefault("hardened", True)
+    return _LLMJudge(*args, **kwargs)
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITE = ROOT / "tests" / "fixtures" / "judge_injection.jsonl"

@@ -8,12 +8,12 @@ it. Ready-made models: :class:`OpenAICompatibleJudge` (any OpenAI-compatible end
 Parse failures are retried once, then recorded as failures (``Score.value is None``), never scored.
 Pairwise comparisons run in both orders; a win counts only when both orders agree.
 
-Prompt injection (``hardened=True``, the default): text being judged is wrapped in tags with a
-random per-call suffix, labelled as data the judge must not obey and stripped of invisible
-characters, and the reply must be one JSON object with exactly the expected keys. Text that looks
-like instructions to a grader flags the result (``Score.metadata["suspect_injection"]``) without
-changing it. See :mod:`tirkit.injection` and ``docs/site/security.md``. ``hardened=False`` is the
-older prompt.
+Prompt injection: text that looks like instructions to a grader always flags the result
+(``Score.metadata["suspect_injection"]``) without changing it. ``hardened=True`` (off by default
+until a measurement shows it helps; see ``docs/DECISIONS.md``) also wraps the text being judged in
+tags with a random per-call suffix, labels it as data the judge must not obey, strips invisible
+characters, and requires the reply to be one JSON object with exactly the expected keys. See
+:mod:`tirkit.injection` and ``docs/site/security.md``.
 """
 
 from __future__ import annotations
@@ -292,7 +292,7 @@ class LLMJudge:
         media_store: MediaStore | None = None,
         scale: tuple[int, int] = (1, 5),
         retries: int = 1,
-        hardened: bool = True,
+        hardened: bool = False,
     ) -> None:
         self.complete = complete
         if isinstance(rubric, str):
@@ -381,6 +381,14 @@ class LLMJudge:
             found += [n for n in injection.signals(text) if n not in found]
         return [injection.sanitize(t) for t in raw], found
 
+    def _signals(self, *values: Any) -> list[str]:
+        """Injection signals in values that are not rewritten (the older, unhardened prompt)."""
+        found: list[str] = []
+        for v in values:
+            text = v if isinstance(v, str) else _render(v)
+            found += [n for n in injection.signals(text) if n not in found]
+        return found
+
     def _hardened_expected(self, example: Example, nonce: str, text: str | None) -> str:
         if example.expected is None or text is None:
             return ""
@@ -414,6 +422,9 @@ class LLMJudge:
                 hi=hi,
             )
         else:
+            found = self._signals(
+                example.input, example.expected if example.expected is not None else "", output
+            )
             prompt = POINTWISE_TEMPLATE.format(
                 rubric=self.rubric.text,
                 input=_render(example.input),
@@ -441,7 +452,7 @@ class LLMJudge:
 
         parsed, error, raw = self._ask(prompt, self._images(example, output), parse, nonce)
         meta: dict[str, Any] = {"rubric": self.rubric.name, "rubric_version": self.rubric.version}
-        if parsed is not None and self.hardened and injection.reason_flags_injection(parsed[1]):
+        if parsed is not None and injection.reason_flags_injection(parsed[1]):
             found.append("judge_reported")
         if found:
             meta["suspect_injection"] = True
@@ -475,6 +486,12 @@ class LLMJudge:
                 b=injection.wrap("output_b", b, nonce),
             )
         else:
+            found = self._signals(
+                example.input,
+                example.expected if example.expected is not None else "",
+                first if isinstance(first, str) else output_text(first),
+                second if isinstance(second, str) else output_text(second),
+            )
             prompt = PAIRWISE_TEMPLATE.format(
                 rubric=self.rubric.text,
                 input=_render(example.input),
@@ -497,7 +514,7 @@ class LLMJudge:
         if parsed is None:
             return None, None, error, found
         winner, reason = parsed
-        if self.hardened and injection.reason_flags_injection(reason):
+        if injection.reason_flags_injection(reason):
             found.append("judge_reported")
         mapped: Literal["first", "second", "tie"] = (
             "first" if winner == "a" else "second" if winner == "b" else "tie"

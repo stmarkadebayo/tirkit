@@ -2,7 +2,7 @@ PY ?= python3
 VENV := .venv
 BIN := $(VENV)/bin
 
-.PHONY: setup lint fmt test test-core test-server test-web progress api api-check demo web serve dev-seed docker bench
+.PHONY: setup lint fmt test test-core test-server test-web progress api api-check demo web serve dev-seed docker bench dist
 
 setup:
 	$(PY) -m venv $(VENV) && $(BIN)/pip install -U pip && $(BIN)/pip install -e ".[dev]"
@@ -40,6 +40,12 @@ demo:
 
 web:
 	cd web && npm ci --no-audit --no-fund && npm run build
+
+dist:  # build the UI into the wheel (dist/*.whl) and check it is there
+	$(MAKE) web
+	rm -rf src/tirkit/server/web && cp -R web/dist src/tirkit/server/web
+	$(BIN)/pip wheel . --no-deps -w dist; status=$$?; rm -rf src/tirkit/server/web; exit $$status
+	$(BIN)/python scripts/check_wheel.py dist/*.whl
 
 serve:
 	$(BIN)/tirkit serve --port 8000

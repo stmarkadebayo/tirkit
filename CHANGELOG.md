@@ -18,6 +18,7 @@ All notable changes to Tirkit are recorded here. The format follows
 - Ingestion decodes, validates and writes off the event loop, so `/api/health` stays fast while a slow batch is written.
 - SDK retries honour `Retry-After`, use jittered exponential backoff and stop after 30 s (Python and TypeScript); the Python exporter defaults to 5 retries instead of 3.
 - The trace page draws only the rows in view and shows every span of a trace, including spans in parent cycles, self-parents and orphans (previously these disappeared); the span tree is built without quadratic copying.
+- The LLM judge's hardened prompt (random delimiters, strict reply format) is off by default; `LLMJudge(hardened=True)` turns it on. The `suspect_injection` flag stays on in every mode.
 
 ### Added
 - Complete OpenAPI schema: every route has request and response models; checked in as `docs/api/openapi.json` and kept current by CI.
@@ -85,6 +86,7 @@ All notable changes to Tirkit are recorded here. The format follows
 - Tests that re-sending a batch (JSON, OTLP, reversed or split) leaves span and trace counts unchanged.
 - Vitest for the web UI (`npm test` in `web/`).
 - `research/benchmarks/bench_query.py` runs on SQLite or Postgres at any size (10M spans supported), seeds a 10,000-span trace and times trace opens.
+- The wheel now carries the web UI (`make dist` builds it into the package; CI checks the wheel with `scripts/check_wheel.py`), so `pip install "tirkit[server]" && tirkit serve` shows the UI instead of only the API.
 
 ### Security
 - Sign-in throttling per account, per address and server-wide with a progressive delay (never a permanent lock-out), generic errors and `Retry-After`; `TIRKIT_TRUSTED_PROXIES` for the real client address behind reverse proxies.
