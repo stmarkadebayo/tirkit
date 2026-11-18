@@ -38,7 +38,7 @@ Develop locally:
 ```bash
 make setup && make web         # Python env and the UI build
 make serve                     # http://localhost:8000
-make dev-seed                  # demo traffic: RAG agent, vision, speech, errors, feedback
+make dev-seed                  # synthetic dev data on every screen: traces, dataset, experiments, labels, judge reports, prompts, alerts
 make test && make lint
 ```
 
