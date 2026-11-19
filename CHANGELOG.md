@@ -16,6 +16,7 @@ All notable changes to Tirkit are recorded here. The format follows
 - E1 batch 1 results (provisional): the judge-vs-human run on 99 labels with the built-in rubric and a calibrated rubric (`research/labelling/rubric_v1.txt`), raw data in `research/experiments/results/e1_judge_vs_human/`, and the caveats in `docs/E1.md` (kappa is uninformative on near-constant labels; v1 is tuned in-sample and frozen for the part 2 held-out test).
 
 ### Changed
+- The npm package page (`sdk-ts/README.md`) now says how to install and use the SDK; the contributor notes moved to `sdk-ts/DEVELOPING.md`.
 - The quickstart and README lead with `pip install "tirkit[server]"` and `tirkit serve` (no Docker, no clone); Docker is the Postgres and worker option for teams.
 - `tirkit serve` and `tirkit worker` default to `tirkit.db`, the file the SDK writes in local mode, instead of `tirkit-server.db`.
 - First-run setup adopts traces recorded in local mode: the first admin's project holds them, so `tirkit serve` in the folder where an app was traced opens on those traces instead of an empty UI.
