@@ -35,7 +35,7 @@ tirkit.instrument()  # OpenAI / Anthropic / transformers calls are now traced
 ```
 No server yet? `tirkit.init()` with no settings writes `tirkit.db` in the current folder; run
 `tirkit serve` in that folder later and the first account you create opens on those traces.
-For a team, `docker compose up -d` (Postgres, server and worker) is in [self-hosting](docs/site/self-hosting.md).
+For a team, `docker compose up -d` (Postgres, server and worker, from the published image) is in [self-hosting](docs/site/self-hosting.md).
 
 More in the [docs](docs/site/quickstart.md): evaluation, CI gating, prompts, self-hosting.
 

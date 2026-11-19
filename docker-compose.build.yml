@@ -1,0 +1,8 @@
+# Build the image from this checkout instead of pulling the published one (used by CI and `make docker`):
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+services:
+  tirkit:
+    build: .
+    image: tirkit:local
+  worker:
+    image: tirkit:local

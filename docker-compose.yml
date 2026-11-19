@@ -1,5 +1,9 @@
 # Self-hosted Tirkit: `docker compose up -d`, then open http://localhost:8000 and create the admin.
-# Change POSTGRES_PASSWORD (in a .env file next to this one) before exposing the server.
+# Pulls the published image: no clone and no build. Pin a release with TIRKIT_IMAGE (for example
+# TIRKIT_IMAGE=ghcr.io/stmarkadebayo/tirkit:v0.1.0 in a .env file next to this one).
+# Change POSTGRES_PASSWORD there too before exposing the server.
+# To build the image from a checkout of the repository instead, add the override file:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 services:
   db:
     image: postgres:16-alpine
@@ -16,8 +20,7 @@ services:
     restart: unless-stopped
 
   tirkit:
-    build: .
-    image: tirkit:local
+    image: ${TIRKIT_IMAGE:-ghcr.io/stmarkadebayo/tirkit:latest}
     environment:
       TIRKIT_DATABASE_URL: postgresql://tirkit:${POSTGRES_PASSWORD:-tirkit}@db:5432/tirkit
       # Plain-HTTP local use. Remove when serving over HTTPS behind a proxy.
@@ -41,7 +44,7 @@ services:
     restart: unless-stopped
 
   worker:
-    image: tirkit:local
+    image: ${TIRKIT_IMAGE:-ghcr.io/stmarkadebayo/tirkit:latest}
     command: ["tirkit", "worker"]
     environment:
       TIRKIT_DATABASE_URL: postgresql://tirkit:${POSTGRES_PASSWORD:-tirkit}@db:5432/tirkit
