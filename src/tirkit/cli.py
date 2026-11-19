@@ -306,7 +306,7 @@ def worker(
     from tirkit.store import open_store
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
-    store = open_store(database_url or os.environ.get("TIRKIT_DATABASE_URL", "tirkit-server.db"))
+    store = open_store(database_url or os.environ.get("TIRKIT_DATABASE_URL", "tirkit.db"))
     store.init_schema()
     typer.echo("Tirkit worker running (Ctrl-C to stop)")
     Worker(store, poll_s=poll).run_forever()

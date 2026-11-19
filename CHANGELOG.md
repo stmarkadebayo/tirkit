@@ -7,6 +7,7 @@ All notable changes to Tirkit are recorded here. The format follows
 ## [Unreleased]
 
 ### Added
+- `scripts/install_smoke.py`, run in CI on Python 3.11, 3.12 and 3.13 (Linux) and 3.12 on macOS and Windows: installs the built wheel into an empty virtualenv, traces with no server, then runs `tirkit serve` on the same file and the Docker smoke steps.
 - Every number in a judge-reliability report now has a stored 95% interval: weighted and pass/fail kappa, exact agreement, the length correlations, a new judge-minus-human `length_bias`, and the position-swap flip rate (Wilson, previously computed only in the browser). `tirkit judge-report` prints them; the Judge reliability page shows them.
 - Dashboard score trends carry a 95% t interval per period (`ci_low`, `ci_high` on each score point), drawn as whiskers on each point and shown in the tooltip.
 - `make dev-seed` now fills every screen of the web UI with synthetic, development-only data: traces, sessions, users, prompts, a three-version dataset, experiments with a regression, a human-labelled annotation queue, judge-reliability reports, online evaluators and alerts. It is deterministic, safe to run twice and needs no network or model (the judge is scripted). See `examples/seed_dev.py`.
@@ -15,6 +16,9 @@ All notable changes to Tirkit are recorded here. The format follows
 - E1 batch 1 results (provisional): the judge-vs-human run on 99 labels with the built-in rubric and a calibrated rubric (`research/labelling/rubric_v1.txt`), raw data in `research/experiments/results/e1_judge_vs_human/`, and the caveats in `docs/E1.md` (kappa is uninformative on near-constant labels; v1 is tuned in-sample and frozen for the part 2 held-out test).
 
 ### Changed
+- The quickstart and README lead with `pip install "tirkit[server]"` and `tirkit serve` (no Docker, no clone); Docker is the Postgres and worker option for teams.
+- `tirkit serve` and `tirkit worker` default to `tirkit.db`, the file the SDK writes in local mode, instead of `tirkit-server.db`.
+- First-run setup adopts traces recorded in local mode: the first admin's project holds them, so `tirkit serve` in the folder where an app was traced opens on those traces instead of an empty UI.
 - Score-average alerts fire only when the 95% interval of the window's mean is wholly past the threshold, and need at least two scores; the message shows the interval and the count. Other alert metrics are unchanged.
 - Code is organised in enforced layers (core, storage, SDK, evaluation, services, delivery); `make lint` runs the import-linter contracts. Shared types live in `tirkit.types` and are still importable from their old modules.
 - `tirkit.store` is now a package and the server is split into per-domain routers; public imports are unchanged.

@@ -26,7 +26,7 @@ safe, and the content is identical on every run apart from timestamps, which are
 6. online evaluators with scored traces, and alert rules (one of them firing).
 
 Steps 5 and 6 write through the store layer because the HTTP API only runs a real model for them.
-Pass ``--db`` (default: ``$TIRKIT_DATABASE_URL`` or ``tirkit-server.db`` in the current directory,
+Pass ``--db`` (default: ``$TIRKIT_DATABASE_URL`` or ``tirkit.db`` in the current directory,
 which is where ``tirkit serve`` keeps it); without a database those parts are skipped.
 """
 
@@ -1382,7 +1382,7 @@ def default_db() -> str | None:
     url = os.environ.get("TIRKIT_DATABASE_URL")
     if url:
         return url
-    return "tirkit-server.db" if Path("tirkit-server.db").exists() else None
+    return "tirkit.db" if Path("tirkit.db").exists() else None
 
 
 def main() -> None:
@@ -1392,7 +1392,7 @@ def main() -> None:
         "--db",
         default=None,
         help="the server's database (SQLite path or postgresql:// URL); default "
-        "$TIRKIT_DATABASE_URL, else ./tirkit-server.db when it exists",
+        "$TIRKIT_DATABASE_URL, else ./tirkit.db when it exists",
     )
     args = ap.parse_args()
 

@@ -143,6 +143,26 @@ class Accounts:
             self.set_role(owner_id, pid, "admin")
         return pid
 
+    def adopt_local_project(self, name: str, owner_id: str) -> str | None:
+        """Make the SDK's local-mode data the first project. Without a server the SDK records
+        into project ``default``, which has no row here; if it holds spans, give it one so a
+        user who traced locally and then ran ``tirkit serve`` on that file sees their traces.
+        Returns the project id, or None when there is nothing to adopt."""
+        from tirkit.store import DEFAULT_PROJECT
+
+        if self.store.execute("SELECT 1 FROM projects WHERE project_id = ?", [DEFAULT_PROJECT]):
+            return None
+        if not self.store.execute(
+            "SELECT 1 FROM spans WHERE project_id = ? LIMIT 1", [DEFAULT_PROJECT]
+        ):
+            return None
+        self.store.execute(
+            "INSERT INTO projects (project_id, name, settings, created) VALUES (?, ?, ?, ?)",
+            [DEFAULT_PROJECT, name, self.store._json(NEW_PROJECT_SETTINGS), time.time()],
+        )
+        self.set_role(owner_id, DEFAULT_PROJECT, "admin")
+        return DEFAULT_PROJECT
+
     def project(self, project_id: str) -> dict[str, Any] | None:
         rows = self.store.execute(
             "SELECT project_id, name, settings, created FROM projects WHERE project_id = ?",
