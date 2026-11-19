@@ -393,3 +393,34 @@ def test_serves_built_ui_with_spa_fallback(tmp_path) -> None:
         assert c.get("/api/nope").status_code == 404
         assert c.get("/../../etc/passwd").status_code in (200, 404)  # never escapes web dir
         assert "root:" not in c.get("/..%2f..%2fetc/passwd").text
+
+
+def test_first_setup_adopts_traces_recorded_in_local_mode(tmp_path) -> None:
+    """pip install, trace into tirkit.db with no server, then ``tirkit serve`` on that file: the
+    first admin's project must contain those traces, not open on an empty UI."""
+    import tirkit
+
+    db = tmp_path / "server.db"
+    tirkit.init(path=db)
+
+    @tirkit.trace(kind="agent")
+    def answer(question: str) -> str:
+        return "Nairobi"
+
+    answer("capital of Kenya?")
+    assert tirkit.flush()
+    tirkit.get_client().shutdown()  # type: ignore[union-attr]
+
+    with TestClient(create_app(make_settings(tmp_path))) as c:
+        pid, _ = setup_admin(c)
+        traces = c.get(f"/api/projects/{pid}/traces").json()
+        assert traces["total"] == 1
+        # A second project made later starts empty: only the first setup adopts local data.
+        other = c.post("/api/projects", json={"name": "Other"}).json()["project_id"]
+        assert c.get(f"/api/projects/{other}/traces").json()["total"] == 0
+
+
+def test_first_setup_without_local_data_makes_a_new_project(client) -> None:
+    pid, _ = setup_admin(client)
+    assert pid != "default"
+    assert client.get(f"/api/projects/{pid}/traces").json()["total"] == 0

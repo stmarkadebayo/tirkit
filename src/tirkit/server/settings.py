@@ -15,7 +15,7 @@ def _int(name: str, default: int) -> int:
 @dataclass
 class Settings:
     database_url: str = field(
-        default_factory=lambda: os.environ.get("TIRKIT_DATABASE_URL", "tirkit-server.db")
+        default_factory=lambda: os.environ.get("TIRKIT_DATABASE_URL", "tirkit.db")
     )
     media_dir: Path = field(
         default_factory=lambda: Path(os.environ.get("TIRKIT_MEDIA_DIR", "tirkit-media"))

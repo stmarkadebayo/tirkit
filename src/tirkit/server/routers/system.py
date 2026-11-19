@@ -45,7 +45,10 @@ def setup(
         user = accounts.create_user(body.email, body.password, name=body.name, is_admin=True)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
-    pid = accounts.create_project(body.project_name or "Default", user.user_id)
+    name = body.project_name or "Default"
+    pid = accounts.adopt_local_project(name, user.user_id) or accounts.create_project(
+        name, user.user_id
+    )
     audit_event(request, "setup", user=user, project_id=pid)
     token, csrf = accounts.create_session(user.user_id)
     resp = json_response({"user": asdict(user), "project_id": pid})

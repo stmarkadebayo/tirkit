@@ -1,0 +1,202 @@
+{
+ "How many days do I have to return an item?": {
+  "brief": "You have 30 days from the date of delivery to return your item.",
+  "detailed": "At Acme Home, you have a full 30-day window from the date of delivery to initiate a return for any unused robot vacuum in its original packaging. Please note that this policy applies only if the product has not been set up or used beyond a brief inspection period. To start the process, simply log into your account on our website and select the \"Returns\" option under your order history. Once approved, we will provide you with a prepaid shipping label to make the exchange seamless."
+ },
+ "Can I return an item I have already used?": {
+  "brief": "Yes, you can return an item you have already used as long as it is in its original condition and within our return window.",
+  "detailed": "Yes, you can return an item we've already used as long as it is in its original condition with all accessories and packaging intact. Please note that our standard return policy allows for a 30-day window from the date of delivery for most products. If your robot vacuum has been used extensively or shows signs of wear beyond normal operation, we may need to inspect it before processing the refund. You can initiate this process directly through your account on our website or by contacting our support team with your order number."
+ },
+ "Does a return need the original packaging?": {
+  "brief": "Yes, we require the original packaging along with all accessories to process your return.",
+  "detailed": "Yes, returning your robot vacuum with the original packaging is required to ensure it can be safely inspected and resold. Please include all accessories, such as the charging dock, brushes, and power cord, along with the user manual inside the box. If you have lost the original box, please contact our support team immediately so we can provide specific instructions or a prepaid shipping label for your situation. We want to make sure your return process is smooth and hassle-free for you."
+ },
+ "Where does my refund go?": {
+  "brief": "Your refund will be processed back to your original payment method within 5-7 business days.",
+  "detailed": "Your refund will be processed back to the original payment method used when you placed your order for the Acme Home robot vacuum. If you paid by credit or debit card, the funds should appear on your statement within 5 to 10 business days after we approve your return request. For purchases made via PayPal or Apple Pay, the refund is typically issued instantly or within a few hours depending on the platform's processing time. Please allow a little extra time for your bank to update their records once the transaction clears on our end."
+ },
+ "How long does a refund take after a return is accepted?": {
+  "brief": "Refunds are processed within 5-7 business days after your return is received and inspected.",
+  "detailed": "Once your returned robot vacuum is received and inspected at our facility, we typically process the refund within 3 to 5 business days. The actual time it takes for the funds to appear in your original payment method depends on your bank or credit card issuer's processing speed. You will receive a confirmation email as soon as the refund has been initiated from our end. If you haven't seen the refund after this window, please check with your financial institution first, and feel free to contact us again if the issue persists."
+ },
+ "Can I get a refund as store credit instead of my card?": {
+  "brief": "Yes, you can request a refund as store credit instead of having it processed back to your original payment card.",
+  "detailed": "Yes, you can absolutely choose to receive your refund as store credit rather than having it processed back to your original payment method. When initiating the return through our customer portal or contacting support, simply select the \"Store Credit\" option from the available refund methods. This credit will be applied directly to your Acme Home account and can be used immediately for future purchases of any robot vacuum or accessory. Please note that while store credit is fully transferable within your account, it cannot be exchanged for cash or sent to a different user's profile."
+ },
+ "Is a return possible 45 days after delivery?": {
+  "brief": "No, returns are only accepted within 30 days of delivery.",
+  "detailed": "Yes, returns are generally accepted within 45 days of your original delivery date for most Acme Home robot vacuums. Please note that the item must be in its original condition with all packaging and accessories included to qualify for a full refund or exchange. You can initiate this process by logging into your account on our website or contacting our support team directly. If you have any specific questions about your order status, feel free to ask!"
+ },
+ "How long does standard shipping take?": {
+  "brief": "Standard shipping typically takes 3-5 business days.",
+  "detailed": "Standard shipping for your new Acme Home robot vacuum typically takes between 3 to 5 business days after we process your order. Please note that processing time may add an additional 1-2 days before your package leaves our warehouse. You will receive a tracking number via email once your order ships so you can monitor its progress. If you need your item sooner, we also offer expedited shipping options at checkout."
+ },
+ "How long does express shipping take?": {
+  "brief": "Express shipping typically delivers your robot vacuum within 2-3 business days.",
+  "detailed": "Express shipping for our robot vacuums typically arrives within 2 to 3 business days after your order is processed. Please note that processing time can add an additional 1-2 days depending on current inventory levels and the time you place your order. You will receive a tracking number via email once your package has been handed off to the carrier so you can monitor its progress. For the most accurate delivery estimate specific to your zip code, I recommend checking the shipping calculator on our website or contacting our logistics team directly."
+ },
+ "How much does express shipping cost?": {
+  "brief": "Express shipping costs $15.99.",
+  "detailed": "Express shipping for our robot vacuums is available at checkout and typically costs between $19.99 and $24.99 depending on your specific location. This expedited service ensures your new Acme Home vacuum arrives within 2 to 3 business days after we process your order. Please note that this fee is separate from any applicable sales tax or potential shipping insurance options you may select during the purchase process. If you have a specific promo code or are part of our loyalty program, please check your account dashboard as these might offer free express shipping on eligible orders."
+ },
+ "Which orders get free shipping?": {
+  "brief": "Orders over $50 qualify for free shipping on all robot vacuums.",
+  "detailed": "At Acme Home, all orders totaling $50 or more qualify for free standard shipping on our robot vacuums. If your cart is under $50, a small shipping fee will be applied at checkout to cover delivery costs. Please note that expedited shipping options like 2-day or overnight delivery are not included in the free shipping offer and will incur additional charges. You can view the specific shipping cost for your order before completing the purchase on our website."
+ },
+ "Is express shipping free for orders over 50 dollars?": {
+  "brief": "Yes, express shipping is free on all orders over $50.",
+  "detailed": "Yes, Acme Home offers free Express Shipping on all orders totaling $50 or more. This promotion applies to our entire catalog of robot vacuums and accessories without any exclusions. You can easily verify the final shipping cost at checkout before completing your purchase. If you have any other questions about our delivery options or order status, please feel free to ask!"
+ },
+ "My order is 40 dollars. Do I pay for standard shipping?": {
+  "brief": "Yes, you will need to pay for standard shipping on your $40 order.",
+  "detailed": "Yes, your order of $40 does not qualify for our free standard shipping promotion, which requires a minimum purchase of $75. You will be charged the standard shipping fee at checkout based on your delivery address. If you would like to avoid this cost, you can add more items to your cart to reach the $75 threshold or choose expedited shipping options if available. Please note that any promotional codes currently applied to your cart may have specific terms regarding shipping eligibility."
+ },
+ "What is the fastest shipping option?": {
+  "brief": "Our fastest shipping option is Next-Day Delivery, available for orders placed before 2 PM EST on eligible items.",
+  "detailed": "The fastest shipping option available for our robot vacuums is our Premium Express delivery, which typically arrives within 1 to 2 business days depending on your location. This service is automatically selected at checkout if you choose the highest-tier shipping method or if an order qualifies for expedited processing. Please note that delivery times may vary slightly based on current inventory levels and regional carrier schedules. You can view the specific estimated arrival date for your address during the checkout process before completing your purchase."
+ },
+ "Can my 60 dollar order ship free?": {
+  "brief": "Yes, your $60 order qualifies for free shipping on all robot vacuums at Acme Home.",
+  "detailed": "Yes, your $60 order qualifies for free shipping on all standard Acme Home robot vacuum models. We currently offer complimentary ground shipping on every purchase, regardless of the total amount spent. Please note that expedited shipping options like 2-day or overnight delivery may still incur a fee if you select them at checkout. You will see the \"Free Shipping\" badge applied to your cart once you complete your order."
+ },
+ "How long is the robot vacuum warranty?": {
+  "brief": "Our robot vacuums come with a standard 1-year limited warranty covering defects in materials and workmanship.",
+  "detailed": "The standard warranty for our robot vacuums covers parts and labor for one full year from your date of purchase. This coverage includes any defects in materials or workmanship that may arise during normal household use. Please note that this warranty does not cover damage caused by accidents, misuse, or unauthorized modifications to the device. For specific details regarding your model or to file a claim, you can visit our official support website or contact our customer service team directly."
+ },
+ "Does the warranty cover motor defects?": {
+  "brief": "Yes, our standard warranty covers defects in the vacuum's motor.",
+  "detailed": "Yes, our standard warranty explicitly covers defects related to the vacuum's main drive motor and suction system components. If your robot vacuum experiences a failure where the motor stops functioning or loses suction due to a manufacturing defect, we will repair or replace the unit at no cost to you. Please note that this coverage applies only if the issue arises under normal household use within the first one year of purchase. To initiate a claim, simply contact our support team with your order number and a brief description of the motor issue."
+ },
+ "Does the warranty cover battery defects?": {
+  "brief": "Yes, our warranty covers defects in the battery.",
+  "detailed": "Yes, our standard warranty explicitly covers defects related to the vacuum's battery, including issues with charging performance or unexpected power loss. If your robot vacuum experiences a battery failure within the warranty period, we will either repair the unit or replace it at no cost to you. Please note that this coverage applies only if the battery was not damaged by improper handling, liquid exposure, or unauthorized modifications. To initiate a claim, simply contact our support team with your order number and a brief description of the issue."
+ },
+ "Is accidental damage covered by the warranty?": {
+  "brief": "Accidental damage is not covered under our standard warranty; please contact us directly to discuss your specific situation.",
+  "detailed": "Accidental damage is generally not covered under our standard limited warranty, which primarily protects against defects in materials and workmanship. However, we do offer an optional Accidental Damage Protection plan that you can purchase separately to cover incidents like drops or spills. If you are unsure about your specific coverage, please check the terms on your receipt or contact our support team with your order number for a quick verification. We recommend reviewing the full warranty document included in your user manual for complete details on exclusions and limitations."
+ },
+ "I dropped my vacuum down the stairs. Is that covered?": {
+  "brief": "Dropping your vacuum down the stairs is considered accidental damage and is not covered under our standard warranty.",
+  "detailed": "I am very sorry to hear about your accident with the robot vacuum; unfortunately, our standard warranty does not cover damage resulting from drops or physical impact like falling down stairs. This type of incident is classified as accidental damage rather than a manufacturing defect, so we cannot process a repair or replacement claim for it under the current policy. However, if you purchased an extended protection plan that specifically includes accidental damage coverage, please check your receipt or account details to see if you are eligible for service. We recommend contacting our sales team directly with your order number to confirm whether any additional options might be available for your specific situation."
+ },
+ "What kind of warranty does the vacuum have?": {
+  "brief": "Our robot vacuums come with a standard 1-year limited warranty covering defects in materials and workmanship.",
+  "detailed": "Our robot vacuums come with a comprehensive one-year limited warranty that covers defects in materials and workmanship for all major components, including the battery, motor, and navigation sensors. This coverage ensures you can enjoy worry-free cleaning for a full year from your purchase date. Please note that this standard warranty does not cover damage resulting from accidents, misuse, or unauthorized modifications to the device. For specific details regarding our extended protection plans or to file a claim if an issue arises, please visit our official support website or contact our dedicated customer service team directly."
+ },
+ "How long does the V2 battery last on one charge?": {
+  "brief": "The V2 battery lasts up to 150 minutes on a single charge.",
+  "detailed": "The V2 model is equipped with a high-capacity battery designed to run for up to 120 minutes on a single charge, allowing it to cover large floor areas in one go. If your home exceeds this cleaning range, the robot will automatically return to its dock to recharge and resume where it left off once fully powered up again. Please note that actual runtime may vary slightly depending on the specific surface types you clean and whether you are using the maximum suction power setting. For optimal performance, we recommend keeping the charging base accessible so the unit can always find a power source when needed."
+ },
+ "How long does the V2 battery take to fully recharge?": {
+  "brief": "The V2 battery takes approximately 4 hours to fully recharge.",
+  "detailed": "The V2 model features a high-capacity battery that typically takes approximately 4 to 5 hours to reach a full charge from an empty state. This charging time ensures your robot vacuum is ready for its next cleaning session without needing frequent interruptions. For optimal battery health, we recommend using only the official AC adapter provided with the unit and avoiding deep discharges over long periods. If you notice the charging time seems unusually long or short, please check that the charging contacts on both the dock and the robot are clean and free of debris."
+ },
+ "How much is a replacement battery?": {
+  "brief": "Replacement batteries for our robot vacuums are available for purchase on our official website or through authorized retailers.",
+  "detailed": "The cost of a replacement battery for our robot vacuums varies depending on the specific model you own, so please check your user manual or visit our official website for the exact price listed for your unit. We also offer convenient shipping options to get the new battery delivered directly to your door once ordered. If you are unsure which battery is compatible with your device, feel free to provide your model number, and I can help verify the correct part for you immediately."
+ },
+ "Can the V2 clean for two hours on one charge?": {
+  "brief": "Yes, the V2 can clean for up to two hours on a single charge.",
+  "detailed": "The V2 model is designed with a high-capacity battery that allows it to run for up to 120 minutes on a single charge, making it suitable for cleaning large homes or running for two continuous hours. However, the actual runtime may vary slightly depending on the specific floor plan, carpet density, and whether you are using the maximum suction power setting. If your home is particularly large or has many obstacles, the robot will automatically return to its dock to recharge before resuming where it left off once the battery is full. For the most accurate estimate based on your specific layout, I recommend checking the official specifications sheet or running a test clean in your home."
+ },
+ "Is a 3 hour charge enough to fill the battery?": {
+  "brief": "Yes, a 3-hour charge is sufficient to fully recharge your robot vacuum's battery.",
+  "detailed": "Yes, a 3-hour charge is sufficient to fully recharge the standard battery included with our most popular robot vacuum models. However, please note that if you have purchased an optional extended-life battery or are using a specific high-capacity model, it may require up to 4 hours for a complete charge. We recommend plugging the unit into a dedicated wall outlet rather than a USB port to ensure the fastest and safest charging speed. If your device is taking significantly longer than expected, you might want to check the charging contacts for any dust or debris that could be slowing down the process."
+ },
+ "What are the chat support hours?": {
+  "brief": "Our chat support is available from 8 AM to 10 PM EST, seven days a week.",
+  "detailed": "Our live chat support is available Monday through Friday from 8:00 AM to 9:00 PM Eastern Time, and Saturday and Sunday from 10:00 AM to 6:00 PM Eastern Time. Please note that these hours may vary slightly depending on your specific time zone, so we recommend checking the \"Support\" page on our website for real-time status updates. If you need assistance outside of these chat windows, you can still reach us via email at support@acmehome.com or by calling our toll-free number listed on our contact page. We strive to respond to all inquiries as quickly as possible within our operating hours."
+ },
+ "Is chat support available on Sunday?": {
+  "brief": "Yes, our chat support is available every day of the week, including Sundays.",
+  "detailed": "Yes, our live chat support is fully operational every day of the week, including Sundays. You can access our chat feature directly through the Acme Home website or mobile app at any time during our standard operating hours. Our team is dedicated to assisting you with any questions about your robot vacuum, whether it's a setup issue or a technical inquiry. If you prefer speaking with someone immediately, please note that our phone support lines may have different availability times listed on our contact page. We are here to ensure you get the best possible help whenever you need it."
+ },
+ "Can I reach support by chat at 9pm Eastern?": {
+  "brief": "Yes, our live chat support is available until 9 PM Eastern time.",
+  "detailed": "Yes, our live chat support is available 24/7, so you can definitely reach us via chat at 9 PM Eastern time. Our team is ready to assist with any questions about your robot vacuum, whether it's a setup issue or a feature inquiry. You can initiate the chat directly from our website or mobile app without needing to wait for business hours. If you prefer speaking with someone on the phone instead, please note that our phone support operates during standard business hours only. Is there anything specific regarding your robot vacuum that you would like help with right now?"
+ },
+ "What is phone support used for?": {
+  "brief": "Phone support is available to assist you with urgent technical issues or complex setup questions that cannot be resolved via our online resources.",
+  "detailed": "Phone support at Acme Home is primarily designed to assist you with urgent technical issues, such as troubleshooting connectivity problems or addressing immediate malfunctions that prevent your robot vacuum from operating. Our team can also guide you through complex setup procedures, help interpret error codes on the device's display, and provide real-time assistance if you are experiencing difficulties with our mobile app. Additionally, phone agents can expedite warranty claims, process returns or exchanges for defective units, and offer personalized advice to ensure your cleaning robot performs at its best. If you prefer a faster resolution than email or chat allows, calling our dedicated support line is the most direct way to get immediate help from a live specialist."
+ },
+ "Can I call support about a shipping question?": {
+  "brief": "Yes, you can reach our support team at 1-800-ACME-HOME to assist with your shipping inquiry.",
+  "detailed": "Yes, you can absolutely call our support team regarding any shipping questions you may have. Our dedicated phone line is available during business hours to assist with order tracking, delivery estimates, and address updates. You can find the specific number and current operating times on our official website under the \"Contact Us\" section. Alternatively, if you prefer not to wait on hold, you can also start a live chat or send an email for faster responses. We are here to ensure your robot vacuum arrives safely and on time."
+ },
+ "Which time zone are support hours in?": {
+  "brief": "Our support hours are listed in Eastern Time (ET).",
+  "detailed": "Our customer support team operates exclusively within Eastern Time (ET) to best serve our North American customers. If you call or chat during business hours, please note that these times correspond to ET, regardless of your local location. For example, if it is 9:00 AM in New York, our agents are available from 9:00 AM to 5:00 PM ET on weekdays. We recommend checking the specific time difference between Eastern Time and your area when planning to contact us."
+ },
+ "What can I do in the Acme Home app?": {
+  "brief": "The Acme Home app allows you to control your robot vacuum, schedule cleaning sessions, and monitor its battery status.",
+  "detailed": "The Acme Home app allows you to control your robot vacuum remotely, including starting cleaning sessions, setting no-go zones, and scheduling automatic daily runs. You can also customize suction power levels, view real-time cleaning maps, and monitor battery life directly from your smartphone. Additionally, the app provides maintenance reminders for filters and brushes, as well as firmware update notifications to keep your device running smoothly."
+ },
+ "Can I schedule cleanings from the app?": {
+  "brief": "Yes, you can easily schedule cleanings directly through our mobile app.",
+  "detailed": "Yes, you can absolutely schedule cleanings directly through our mobile app. Simply open the app, navigate to the \"Schedule\" or \"Clean Now\" tab, and select your preferred time for the robot vacuum to start cleaning. You can set up one-time tasks or create recurring schedules that run automatically every day or on specific days of the week. This feature allows you to keep your floors clean even when you are away from home."
+ },
+ "Can I set no-go zones?": {
+  "brief": "Yes, you can easily set no-go zones directly through the companion app to keep your robot vacuum out of specific areas.",
+  "detailed": "Yes, you can absolutely set no-go zones on our robot vacuums using the Acme Home app. Simply open the map view after your first cleaning run, then tap and drag to draw a polygon around any area you want the robot to avoid, such as pet bowls or delicate plants. Once saved, the vacuum will automatically navigate around these boundaries during every subsequent cleaning session. If you need to adjust or remove a zone later, you can easily do so directly from the app's map interface at any time."
+ },
+ "Can I check battery level in the app?": {
+  "brief": "Yes, you can view your robot vacuum's battery level directly within the Acme Home app.",
+  "detailed": "Yes, you can easily check your robot vacuum's battery level directly through the Acme Home app. Once your device is connected and paired, simply open the app and select your unit from the dashboard to view a real-time battery percentage indicator. Additionally, the app will send you push notifications if the battery gets low or when it returns to its charging dock. For more detailed insights, you can also access the specific device settings menu within the app to see historical charging data."
+ },
+ "Does the app work on iOS 15?": {
+  "brief": "Yes, our app is fully compatible with iOS 15.",
+  "detailed": "Yes, our Acme Home app is fully compatible with iOS 15 and will function correctly on your device. You can download the latest version from the App Store to ensure you have all the necessary updates for seamless operation. If you encounter any specific issues after installing it, please reach out to our support team so we can assist you further. We recommend keeping your app updated to the newest version available for iOS 15 users to access all features."
+ },
+ "Does the app work on Android 12?": {
+  "brief": "Yes, our app is fully compatible with Android 12.",
+  "detailed": "Yes, our Acme Home app is fully compatible with Android 12 and all subsequent versions. You can download the latest version from the Google Play Store or our website to ensure you have the most up-to-date software that supports your device's operating system. If you are currently using an older version of the app, we recommend updating it immediately to take advantage of new features and bug fixes optimized for Android 12. Please note that while the app works on Android 12, specific hardware requirements for your robot vacuum model must also be met for full functionality."
+ },
+ "Does the app work on Android 11?": {
+  "brief": "Yes, our app is fully compatible with Android 11.",
+  "detailed": "Yes, our Acme Home app is fully compatible with Android 11 and all subsequent versions. You can download the latest version from the Google Play Store or our website to ensure you have the most up-to-date software that supports your device's operating system. If you are currently using an older version of the app, we recommend updating it immediately to take advantage of new features and security patches designed for modern Android systems. Please note that while the app works on Android 11, specific robot vacuum models may have their own firmware requirements, so checking your device's compatibility list is always a good idea."
+ },
+ "What is the minimum iOS version for the app?": {
+  "brief": "The Acme Home app requires iOS 14.0 or later to run.",
+  "detailed": "The Acme Home robot vacuum app requires a minimum of iOS 14.0 or later to ensure full compatibility with all features. Please note that while the app supports this version, some advanced mapping and smart home integrations may require iOS 15.0 or higher for optimal performance. You can check your current version by going to Settings > General > About on your iPhone. If you are running an older version, we recommend updating through the App Store before attempting to install or update the app."
+ },
+ "Is a replacement battery more expensive than express shipping?": {
+  "brief": "Yes, a replacement battery is significantly more expensive than our express shipping fee.",
+  "detailed": "Yes, a replacement battery is significantly more expensive than our Express Shipping upgrade. While an Express Shipping add-on typically costs around $10 to $15, a genuine Acme Home replacement battery usually ranges from $49 to $79 depending on your specific model. We recommend purchasing the battery directly through our official website or contacting our support team to ensure you get the correct part for your unit. If you need the battery urgently, we can also help expedite the shipping process at no extra cost if you are an existing customer."
+ },
+ "If I order a 39 dollar battery with standard shipping, is shipping free?": {
+  "brief": "No, shipping is not free for a $39 battery; it will be charged separately at checkout.",
+  "detailed": "No, shipping is not automatically free for a $39 battery order under our standard shipping policy. Free standard shipping is typically reserved for orders of the full robot vacuum unit or when you purchase specific bundles that meet our minimum threshold. However, you can still choose to add expedited shipping options at checkout if you prefer faster delivery. For the most accurate and up-to-date information on current promotions, please check the product page or contact our support team directly before completing your purchase."
+ },
+ "I bought the vacuum 18 months ago and the motor failed. Is it covered?": {
+  "brief": "Yes, your vacuum is still covered under our standard 2-year warranty for motor failures.",
+  "detailed": "Yes, your robot vacuum is still covered under our standard one-year limited warranty, but since the failure occurred 18 months after purchase, you are outside that initial coverage period. However, Acme Home offers an optional extended protection plan that can cover repairs or replacements for up to two years from the date of purchase; please check your original receipt or account portal to see if you purchased this add-on. If you did not buy the extended plan, we can still provide a quote for out-of-warranty repair services or discuss trade-in options for a new unit. I recommend contacting our support team directly with your serial number so we can verify your specific purchase history and available solutions immediately."
+ },
+ "My vacuum is 3 years old and the battery is failing. Is it under warranty?": {
+  "brief": "No, your vacuum is no longer covered by our standard one-year warranty.",
+  "detailed": "Our standard limited warranty for our robot vacuums typically covers one year from the date of purchase, so unfortunately, a three-year-old unit would likely be outside that coverage period. However, we do offer an optional extended protection plan that some customers may have purchased separately to cover battery replacements beyond the initial year. To confirm your specific situation, please check the original receipt or registration for any extended plan details, and I can also help you locate a local service center if you'd like to explore repair options."
+ },
+ "Which support channel handles warranty claims?": {
+  "brief": "Please contact our dedicated warranty team at 1-800-WARRANTY to file your claim.",
+  "detailed": "Warranty claims for your Acme Home robot vacuum should be submitted directly through our dedicated online warranty portal at acmehome.com/warranty. You can also initiate the process by calling our specialized warranty support line at 1-800-555-WARN (9276) during business hours. Please have your model number and proof of purchase ready before contacting us to ensure a faster resolution. Our team will guide you through the specific steps required for your claim, which may include uploading photos or videos of the issue."
+ },
+ "How do I claim a refund for an unused item within a week of delivery?": {
+  "brief": "Please contact our support team directly to initiate your refund request for the unused item.",
+  "detailed": "To claim a refund for your unused robot vacuum within a week of delivery, please log in to your Acme Home account and navigate to the \"Order History\" section. Select the specific order containing the unused item and click on \"Return/Refund\" to initiate the process through our portal. Alternatively, you can contact our support team directly via chat or email with your order number and a photo of the unopened product packaging to expedite approval. Once verified, we will issue your refund to the original payment method used for the purchase within 3–5 business days. Please ensure the item remains in its original condition with all accessories included before shipping it back using the prepaid label we provide."
+ },
+ "How long would express shipping plus a refund take in total for a returned item?": {
+  "brief": "Express shipping and refunds are processed separately, so there is no single combined timeframe for both actions.",
+  "detailed": "Express shipping for our returns typically takes 2 to 3 business days once we receive your package at our facility. After we inspect and process the return, a full refund is issued immediately to your original payment method within 1-2 business days. Please note that the total time depends on how quickly you can ship the item back using the prepaid label included in your kit. You will receive email notifications at each stage of this process to keep you updated on the status of your return and refund."
+ },
+ "Does Acme offer support on Saturday?": {
+  "brief": "Yes, our customer support team is available to assist you this Saturday.",
+  "detailed": "Yes, Acme Home provides customer support on Saturdays to assist with any questions about your robot vacuum. Our dedicated team is available via phone and live chat throughout the weekend to help with setup, troubleshooting, or warranty inquiries. You can reach us at 1-800-ACME-SUPP or visit our online support portal for immediate assistance. Please note that while our hours are extended on Saturdays, they may differ slightly from our weekday schedule, so checking our website for specific times is recommended. We are committed to ensuring you get the best possible experience with your product regardless of the day you call."
+ },
+ "Can I set a cleaning schedule on an Android 10 phone?": {
+  "brief": "Yes, you can set a cleaning schedule on your Android 10 phone using the Acme Home app.",
+  "detailed": "Yes, you can absolutely set a cleaning schedule on your Acme Home robot vacuum using an Android 10 phone. The official Acme Home app is fully compatible with Android 10 and includes robust scheduling features that allow you to define specific days and times for your robot to clean. Once installed from the Google Play Store, simply navigate to the \"Schedule\" or \"Timer\" tab within the app's main menu to create your preferred routine. If you encounter any issues during setup, our support team is available via the app's help section to assist you further."
+ },
+ "What does the V2 battery cost to replace and how long does it last?": {
+  "brief": "The V2 battery costs $49.99 to replace and typically lasts for about 60 minutes of cleaning time.",
+  "detailed": "The replacement battery for our V2 model is priced at $49.99, which can be purchased directly from our official website or authorized retailers. Under normal usage conditions, this high-capacity lithium-ion battery typically lasts between 18 to 24 months before its performance noticeably degrades. We recommend replacing the battery once you notice a significant drop in suction power or if the vacuum no longer completes a full cleaning cycle on a single charge. If your unit is still under our standard one-year warranty, please contact our support team first, as we may cover the cost of this specific replacement part for you."
+ }
+}

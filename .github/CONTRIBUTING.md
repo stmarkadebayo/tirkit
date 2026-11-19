@@ -43,7 +43,7 @@ through the HTTP API.
 | An HTTP route or its request/response shape | `src/tirkit/server/routers/` and `models.py` ([README](../src/tirkit/server/README.md)); then `make api` | delivery | `make test-server`, `make api-check` |
 | A CLI command | `cli.py` | delivery | `make test-core` |
 | A screen in the web UI | `web/src/pages/` ([README](../web/README.md)) | web | `make test-web` |
-| The TypeScript SDK | `sdk-ts/` ([README](../sdk-ts/README.md)) | sdk (TS) | `cd sdk-ts && npm test` |
+| The TypeScript SDK | `sdk-ts/` ([guide](../sdk-ts/DEVELOPING.md)) | sdk (TS) | `cd sdk-ts && npm test` |
 | User docs | `docs/site/` | docs | `mkdocs build --strict` |
 | Backup, restore, monitoring queries | `src/tirkit/store/backup.py`, `store/ops.py`; the `/metrics` endpoint in `server/prometheus.py` | storage / delivery | `make test`, `scripts/restore_drill.py` |
 | Docker, Compose, CI, Helm chart | `Dockerfile`, `docker-compose.yml`, `.github/workflows/`, `deploy/helm/` | deploy | `helm lint deploy/helm/tirkit` |

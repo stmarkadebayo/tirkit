@@ -22,16 +22,21 @@ rubric version.
 
 ## Quickstart
 ```bash
-docker compose up -d                 # http://localhost:8000: create the admin, then an API key
-pip install tirkit
+pip install "tirkit[server]"         # the SDK, the server and the web UI; no Docker needed
+tirkit serve                         # http://127.0.0.1:8000: create the admin, then an API key
 export TIRKIT_HOST=http://localhost:8000 TIRKIT_PUBLIC_KEY=pk-tirkit-... TIRKIT_SECRET_KEY=sk-tirkit-...
 ```
+In the app you are tracing, `pip install tirkit` is enough (the server packages are not needed there).
 ```python
 import tirkit
 
 tirkit.init()
 tirkit.instrument()  # OpenAI / Anthropic / transformers calls are now traced
 ```
+No server yet? `tirkit.init()` with no settings writes `tirkit.db` in the current folder; run
+`tirkit serve` in that folder later and the first account you create opens on those traces.
+For a team, `docker compose up -d` (Postgres, server and worker) is in [self-hosting](docs/site/self-hosting.md).
+
 More in the [docs](docs/site/quickstart.md): evaluation, CI gating, prompts, self-hosting.
 
 Develop locally:

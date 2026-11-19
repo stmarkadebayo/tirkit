@@ -24,3 +24,6 @@ Rules, decided before you start (keep them the same for all 100 items):
    to make them agree with later ones. If a rule is missing, add it here and apply it from then on.
 
 Label in one or two sittings (about an hour for 100). Number keys score, Enter submits.
+
+Some answers are wrong on purpose or because the model had to guess. Score them honestly with the same
+rules; do not assume an answer is correct because it sounds sure of itself.
