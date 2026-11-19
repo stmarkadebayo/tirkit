@@ -3,17 +3,29 @@
 ## 1. Run the server
 
 ```bash
+pip install "tirkit[server]"     # the SDK, the server and the web UI (Python 3.11+)
+tirkit serve                     # http://127.0.0.1:8000, data in ./tirkit.db
+```
+
+Open <http://127.0.0.1:8000>, create the admin account, and follow the **Send your first trace**
+checklist on the Overview: it creates the key and shows the code with your address and key filled in
+(or use **Settings → API keys → Create API key** and copy the three lines it shows).
+
+This is one process on SQLite: enough for evaluation and a small team. For Postgres and a separate
+background worker, use Docker:
+
+```bash
 git clone https://github.com/stmarkadebayo/tirkit && cd tirkit
 docker compose up -d          # server, worker and Postgres on http://localhost:8000
 ```
 
-Open <http://localhost:8000>, create the admin account, and follow the **Send your first trace**
-checklist on the Overview: it creates the key and shows the code with your address and key filled in
-(or use **Settings → API keys → Create API key** and copy the three lines it shows).
-
-No Docker? `pip install "tirkit[server]" && tirkit serve` runs everything in one process on SQLite.
+**Already tracing without a server?** `tirkit.init()` with no settings writes `tirkit.db` in the
+current folder. Run `tirkit serve` in the same folder and the first account you create opens on
+those traces.
 
 ## 2. Send your first trace
+
+In the app you are tracing, the SDK alone is enough:
 
 ```bash
 pip install tirkit
