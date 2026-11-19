@@ -39,6 +39,12 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--url", default="http://localhost:8000")
     ap.add_argument("--startup-timeout", type=float, default=180.0)
+    ap.add_argument(
+        "--expect-traces",
+        type=int,
+        default=0,
+        help="traces already in the database (from local mode) that the new project must show",
+    )
     args = ap.parse_args()
     url = args.url.rstrip("/")
 
@@ -62,6 +68,11 @@ def main() -> int:
         )
         r.raise_for_status()
         pid = r.json()["project_id"]
+        before = c.get(f"/api/projects/{pid}/traces").json()["total"] or 0
+        if before != args.expect_traces:
+            raise SystemExit(
+                f"FAILED: the new project shows {before} traces, expected {args.expect_traces}"
+            )
 
         step("sign in and create an API key")
         c.post("/api/auth/login", json={"email": email, "password": password}).raise_for_status()
@@ -79,15 +90,18 @@ def main() -> int:
             s.output = "world"
         tirkit.flush()
         wait_for(
-            lambda: (c.get(f"/api/projects/{pid}/traces").json()["total"] or 0) >= 1,
+            lambda: (c.get(f"/api/projects/{pid}/traces").json()["total"] or 0) > before,
             "the trace to appear in the trace list",
             30,
         )
 
         step("the same trace is returned by the API with its input and output")
-        item = c.get(f"/api/projects/{pid}/traces").json()["items"][0]
-        trace = c.get(f"/api/projects/{pid}/traces/{item['trace_id']}?full=1").json()
-        if "world" not in str(trace):
+        items = c.get(f"/api/projects/{pid}/traces").json()["items"]
+        found = False
+        for item in items:
+            trace = c.get(f"/api/projects/{pid}/traces/{item['trace_id']}?full=1").json()
+            found = found or "world" in str(trace)
+        if not found:
             raise SystemExit("FAILED: the stored trace does not contain the span's output")
 
         step("/metrics answers (shared across server processes)")
