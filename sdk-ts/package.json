@@ -35,7 +35,7 @@
     "test": "npm run build && node --test test/"
   },
   "devDependencies": {
-    "@types/node": "20.17.6",
-    "typescript": "5.7.2"
+    "@types/node": "20.19.43",
+    "typescript": "5.9.3"
   }
 }
