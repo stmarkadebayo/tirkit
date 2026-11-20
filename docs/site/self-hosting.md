@@ -1,7 +1,10 @@
 # Self-hosting
 
 `docker compose up -d` starts three services: Postgres, the server (API, OTLP ingest, UI) and the
-worker (UI experiments, online evals, alerts, retention).
+worker (UI experiments, online evals, alerts, retention). It pulls `ghcr.io/stmarkadebayo/tirkit`;
+fetch the compose file with `curl -O https://raw.githubusercontent.com/stmarkadebayo/tirkit/main/docker-compose.yml`
+and pin a release with `TIRKIT_IMAGE=ghcr.io/stmarkadebayo/tirkit:v0.1.0` in a `.env` file next to it.
+To build from a checkout instead: `docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build`.
 
 | Variable | Purpose |
 | --- | --- |

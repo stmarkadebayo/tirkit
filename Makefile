@@ -54,7 +54,7 @@ dev-seed:
 	$(BIN)/python examples/seed_dev.py --url http://127.0.0.1:8000
 
 docker:
-	docker compose up -d --build
+	COMPOSE_FILE=docker-compose.yml:docker-compose.build.yml docker compose up -d --build
 
 bench:
 	$(BIN)/python research/benchmarks/bench_tracing.py

@@ -133,10 +133,11 @@ space for reuse after autovacuum; the files shrink only after `VACUUM FULL`.
 
 ```bash
 helm install tirkit deploy/helm/tirkit \
-  --set image.repository=registry.example.com/tirkit --set image.tag=0.1.0
+  --set image.repository=ghcr.io/stmarkadebayo/tirkit --set image.tag=v0.1.0
 ```
 
-No image is published yet: build the repository's `Dockerfile` and push it to your registry.
+The image is published to `ghcr.io/stmarkadebayo/tirkit` with each release; use your own registry
+by building the repository's `Dockerfile` and pushing it there.
 
 - **Server**: a Deployment (2 replicas by default, optional HPA on CPU), startup, readiness and
   liveness probes on `/api/health`, and a PodDisruptionBudget when more than one replica runs.

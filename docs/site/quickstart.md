@@ -12,10 +12,10 @@ checklist on the Overview: it creates the key and shows the code with your addre
 (or use **Settings → API keys → Create API key** and copy the three lines it shows).
 
 This is one process on SQLite: enough for evaluation and a small team. For Postgres and a separate
-background worker, use Docker:
+background worker, use Docker. It pulls the published image: no clone, no build.
 
 ```bash
-git clone https://github.com/stmarkadebayo/tirkit && cd tirkit
+curl -O https://raw.githubusercontent.com/stmarkadebayo/tirkit/main/docker-compose.yml
 docker compose up -d          # server, worker and Postgres on http://localhost:8000
 ```
 
