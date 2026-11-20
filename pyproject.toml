@@ -72,7 +72,7 @@ dev = [
     "openai-agents>=0.2",
     "llama-index-core>=0.12",
     "dspy>=2.6",
-    "wrapt<2",  # the OpenTelemetry OpenAI instrumentation breaks on wrapt 2
+    "wrapt<3",  # the OpenTelemetry OpenAI instrumentation breaks on wrapt 2
 ]
 
 
