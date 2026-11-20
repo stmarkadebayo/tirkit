@@ -39,8 +39,8 @@ jobs:
     env:
       PG_URL: postgresql://tirkit:tirkit@localhost:5432/tirkit
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install -e ".[server]"
@@ -65,8 +65,8 @@ jobs:
       CHART: deploy/helm/tirkit
       KUBECONFORM_VERSION: v0.6.7
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
         with:
           version: v3.16.3
       - name: Install kubeconform

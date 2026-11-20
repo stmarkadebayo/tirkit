@@ -34,8 +34,8 @@ jobs:
     env:
       COMPOSE_FILE: docker-compose.yml:docker-compose.build.yml   # build this checkout, do not pull
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install -e .   # the SDK and httpx, for the smoke script
@@ -59,8 +59,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install -e .   # the SDK and httpx, for the smoke script
